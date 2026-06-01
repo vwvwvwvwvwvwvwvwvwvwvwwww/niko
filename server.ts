@@ -7,14 +7,10 @@ import fs from 'fs';
 import cookieSession from 'cookie-session';
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
-import { GoogleGenAI } from "@google/genai";
-
 const isProduction = process.env.NODE_ENV === 'production';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 // Notification service helpers
 async function sendTelegramNotification(message: string, chatId?: string) {
@@ -58,9 +54,12 @@ async function startServer() {
   app.use(compression());
 
   // Сразу открываем порт — Railway healthcheck не ждёт инициализации БД
+  console.log(`[startup] NODE_ENV=${process.env.NODE_ENV} PORT=${process.env.PORT} → listen ${PORT}`);
+  console.log(`[startup] Railway=${!!process.env.RAILWAY_ENVIRONMENT} DB path will be in /tmp on Railway`);
+
   await new Promise<void>((resolve) => {
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Порт ${PORT} открыт, инициализация приложения...`);
+      console.log(`[startup] Порт ${PORT} открыт (0.0.0.0), инициализация...`);
       resolve();
     });
   });
@@ -87,8 +86,23 @@ async function startServer() {
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
   }
-  const db = new Database(dbPath);
-  db.exec(`
+
+  let db: InstanceType<typeof Database>;
+  try {
+    db = new Database(dbPath);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Не удалось открыть базу данных:', message);
+    app.get('*', (_req, res) => {
+      res.status(503).type('text/plain').send(
+        `Ошибка базы данных. Проверьте Deploy Logs на Railway.\n\n${message}`
+      );
+    });
+    return;
+  }
+
+  try {
+    db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT UNIQUE,
@@ -280,6 +294,16 @@ async function startServer() {
       FOREIGN KEY(user_id) REFERENCES users(id)
     );
   `);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Ошибка инициализации БД:', message);
+    app.get('*', (_req, res) => {
+      res.status(503).type('text/plain').send(
+        `Ошибка инициализации базы данных. Deploy Logs на Railway.\n\n${message}`
+      );
+    });
+    return;
+  }
 
   // Helper for logging history
   const logActivity = (userId: number, action: string, details: string) => {
