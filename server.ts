@@ -50,13 +50,20 @@ async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
 
   if (isProduction && !process.env.SESSION_SECRET) {
-    console.error('ОШИБКА ЗАПУСКА: задайте SESSION_SECRET в Variables на Railway (или в .env локально).');
-    process.exit(1);
+    console.warn('ВНИМАНИЕ: SESSION_SECRET не задан. Задайте его в Railway Variables для безопасности.');
   }
 
   const app = express();
   app.get('/health', (_req, res) => res.status(200).send('ok'));
   app.use(compression());
+
+  // Сразу открываем порт — Railway healthcheck не ждёт инициализации БД
+  await new Promise<void>((resolve) => {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Порт ${PORT} открыт, инициализация приложения...`);
+      resolve();
+    });
+  });
 
   // Global helpers for EJS
   app.locals.optImg = (url: string, w = 800) => {
@@ -71,8 +78,11 @@ async function startServer() {
     return url;
   };
 
-  // Database setup
-  const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'niko.db');
+  // Database setup (на Railway используем /tmp — гарантированно доступен для записи)
+  const defaultDbPath = process.env.RAILWAY_ENVIRONMENT
+    ? path.join('/tmp', 'niko.db')
+    : path.join(__dirname, 'niko.db');
+  const dbPath = process.env.DATABASE_PATH || defaultDbPath;
   const dbDir = path.dirname(dbPath);
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
@@ -395,7 +405,9 @@ async function startServer() {
   // Middleware
   app.set('trust proxy', true); // Trust all proxies
   
-  const sessionSecret = process.env.SESSION_SECRET || 'niko-dev-secret';
+  const sessionSecret =
+    process.env.SESSION_SECRET ||
+    (process.env.RAILWAY_ENVIRONMENT ? 'railway-change-this-secret' : 'niko-dev-secret');
 
   app.use(cookieSession({
     name: 'niko.sid',
@@ -1446,10 +1458,12 @@ async function startServer() {
     app.use(express.static(path.join(__dirname, 'dist')));
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    const publicUrl = process.env.APP_URL || `http://localhost:${PORT}`;
-    console.log(`Сервер запущен: ${publicUrl} (порт ${PORT}, режим ${process.env.NODE_ENV || 'development'})`);
-  });
+  const publicUrl =
+    process.env.APP_URL ||
+    (process.env.RAILWAY_PUBLIC_DOMAIN
+      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+      : `http://localhost:${PORT}`);
+  console.log(`Сервер готов: ${publicUrl} (порт ${PORT}, режим ${process.env.NODE_ENV || 'development'})`);
 }
 
 startServer().catch((err) => {
