@@ -14,5 +14,4 @@ RUN npm run build
 
 ENV NODE_ENV=production
 
-RUN chmod +x scripts/start.sh
-CMD ["sh", "scripts/start.sh"]
+CMD ["node", "dist/server.mjs"]

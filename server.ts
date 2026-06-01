@@ -2,15 +2,13 @@ import 'dotenv/config';
 import express from 'express';
 import compression from 'compression';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import fs from 'fs';
 import cookieSession from 'cookie-session';
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
 const isProduction = process.env.NODE_ENV === 'production';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const ROOT_DIR = process.cwd();
 
 // Notification service helpers
 async function sendTelegramNotification(message: string, chatId?: string) {
@@ -44,6 +42,10 @@ async function sendSMSNotification(phone: string, message: string) {
 
 async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
+  if (process.env.RAILWAY_ENVIRONMENT && !process.env.PORT) {
+    console.error('[startup] Railway не передал PORT — проверьте настройки сервиса.');
+    process.exit(1);
+  }
 
   if (isProduction && !process.env.SESSION_SECRET) {
     console.warn('ВНИМАНИЕ: SESSION_SECRET не задан. Задайте его в Railway Variables для безопасности.');
@@ -64,6 +66,8 @@ async function startServer() {
     });
   });
 
+  try {
+
   // Global helpers for EJS
   app.locals.optImg = (url: string, w = 800) => {
     if (!url) return '';
@@ -80,7 +84,7 @@ async function startServer() {
   // Database setup (на Railway используем /tmp — гарантированно доступен для записи)
   const defaultDbPath = process.env.RAILWAY_ENVIRONMENT
     ? path.join('/tmp', 'niko.db')
-    : path.join(__dirname, 'niko.db');
+    : path.join(ROOT_DIR, 'niko.db');
   const dbPath = process.env.DATABASE_PATH || defaultDbPath;
   const dbDir = path.dirname(dbPath);
   if (!fs.existsSync(dbDir)) {
@@ -489,7 +493,7 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true }));
   app.use(express.json());
   app.set('view engine', 'ejs');
-  app.set('views', path.join(__dirname, 'views'));
+  app.set('views', path.join(ROOT_DIR, 'views'));
 
   app.get('/debug-session', (req: any, res) => {
     res.json({
@@ -1479,7 +1483,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(path.join(__dirname, 'dist')));
+    app.use(express.static(path.join(ROOT_DIR, 'dist')));
   }
 
   const publicUrl =
@@ -1488,6 +1492,14 @@ async function startServer() {
       ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
       : `http://localhost:${PORT}`);
   console.log(`Сервер готов: ${publicUrl} (порт ${PORT}, режим ${process.env.NODE_ENV || 'development'})`);
+
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[startup] Ошибка инициализации:', message);
+    app.get('*', (_req, res) => {
+      res.status(503).type('text/plain').send(`Ошибка запуска: ${message}`);
+    });
+  }
 }
 
 startServer().catch((err) => {
