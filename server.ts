@@ -47,9 +47,16 @@ async function sendSMSNotification(phone: string, message: string) {
 }
 
 async function startServer() {
-  const app = express();
-  app.use(compression());
   const PORT = Number(process.env.PORT) || 3000;
+
+  if (isProduction && !process.env.SESSION_SECRET) {
+    console.error('ОШИБКА ЗАПУСКА: задайте SESSION_SECRET в Variables на Railway (или в .env локально).');
+    process.exit(1);
+  }
+
+  const app = express();
+  app.get('/health', (_req, res) => res.status(200).send('ok'));
+  app.use(compression());
 
   // Global helpers for EJS
   app.locals.optImg = (url: string, w = 800) => {
@@ -388,11 +395,7 @@ async function startServer() {
   // Middleware
   app.set('trust proxy', true); // Trust all proxies
   
-  const sessionSecret = process.env.SESSION_SECRET || (isProduction ? '' : 'niko-dev-secret');
-  if (isProduction && !sessionSecret) {
-    console.error('Ошибка: задайте SESSION_SECRET в переменных окружения для production.');
-    process.exit(1);
-  }
+  const sessionSecret = process.env.SESSION_SECRET || 'niko-dev-secret';
 
   app.use(cookieSession({
     name: 'niko.sid',
@@ -1449,5 +1452,8 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('Не удалось запустить сервер:', err);
+  process.exit(1);
+});
 
