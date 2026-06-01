@@ -1,0 +1,152 @@
+<%- include('header') %>
+
+<section class="max-w-7xl mx-auto px-4 py-24">
+    <div class="text-center mb-16">
+        <h1 class="text-6xl font-black text-zinc-900 tracking-tighter mb-4">Combo <span class="text-emerald-600">Constructor</span></h1>
+        <p class="text-zinc-500 max-w-xl mx-auto">Соберите свой идеальный пакет услуг и получите гарантированную скидку до 15% на общую сумму.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <!-- Selector -->
+        <div class="lg:col-span-2 space-y-6">
+            <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                <span class="w-8 h-8 bg-zinc-900 text-white rounded-lg flex items-center justify-center text-sm">1</span>
+                Выберите услуги для пакета
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <% services.forEach(service => { %>
+                    <div class="glass p-6 rounded-[2rem] border border-zinc-100 flex items-center gap-6 cursor-pointer group transition-all hover:bg-zinc-50" id="service-<%= service.id %>" onclick="toggleComboService(<%= JSON.stringify(service) %>)">
+                        <div class="w-16 h-16 rounded-2xl overflow-hidden shrink-0">
+                            <img src="<%= service.image_url %>" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-grow">
+                            <h4 class="font-bold"><%= service.name %></h4>
+                            <div class="text-emerald-600 font-bold"><%= service.price %> ₽</div>
+                        </div>
+                        <div class="service-checkbox w-8 h-8 rounded-full border-2 border-zinc-200 flex items-center justify-center transition-all group-hover:border-emerald-500">
+                            <i data-lucide="check" class="w-4 h-4 text-white opacity-0 transition-opacity"></i>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="lg:col-span-1">
+            <div class="sticky top-24">
+                <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                    <span class="w-8 h-8 bg-zinc-900 text-white rounded-lg flex items-center justify-center text-sm">2</span>
+                    Ваш пакет
+                </h3>
+                
+                <div class="glass p-8 rounded-[3rem] border border-zinc-100 shadow-2xl relative overflow-hidden">
+                    <div id="combo-empty" class="text-center py-12 text-zinc-400 italic">
+                        Выберите хотя бы 2 услуги для активации скидки
+                    </div>
+                    
+                    <div id="combo-list" class="hidden space-y-4 mb-8">
+                        <!-- Items dynamically added -->
+                    </div>
+
+                    <div id="combo-footer" class="hidden pt-6 border-t border-zinc-100 space-y-4">
+                        <div class="flex justify-between items-center text-zinc-500 text-sm">
+                            <span>Сумма без скидки</span>
+                            <span id="subtotal" class="line-through">0 ₽</span>
+                        </div>
+                        <div class="flex justify-between items-center text-emerald-600 font-bold">
+                            <span id="discount-label">Скидка Combo (10%)</span>
+                            <span id="discount-amount">-0 ₽</span>
+                        </div>
+                        <div class="flex justify-between items-center text-2xl font-black text-zinc-900 pt-2">
+                            <span>Итого</span>
+                            <span id="total">0 ₽</span>
+                        </div>
+                        
+                        <% if (user) { %>
+                            <button onclick="bookCombo()" class="w-full py-5 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-100 mt-4">
+                                Забронировать пакет
+                            </button>
+                        <% } else { %>
+                            <a href="/login" class="block text-center py-5 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-100 mt-4">
+                                Войти для бронирования
+                            </a>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    let selectedServices = [];
+
+    function toggleComboService(service) {
+        const index = selectedServices.findIndex(s => s.id === service.id);
+        const card = document.getElementById(`service-${service.id}`);
+        const checkbox = card.querySelector('.service-checkbox');
+        const icon = checkbox.querySelector('i');
+
+        if (index === -1) {
+            selectedServices.push(service);
+            card.classList.add('ring-2', 'ring-emerald-500', 'bg-emerald-50/50');
+            checkbox.classList.add('bg-emerald-500', 'border-emerald-500');
+            icon.classList.remove('opacity-0');
+        } else {
+            selectedServices.splice(index, 1);
+            card.classList.remove('ring-2', 'ring-emerald-500', 'bg-emerald-50/50');
+            checkbox.classList.remove('bg-emerald-500', 'border-emerald-500');
+            icon.classList.add('opacity-0');
+        }
+
+        updateComboUI();
+    }
+
+    function updateComboUI() {
+        const empty = document.getElementById('combo-empty');
+        const list = document.getElementById('combo-list');
+        const footer = document.getElementById('combo-footer');
+        const subtotalEl = document.getElementById('subtotal');
+        const discountEl = document.getElementById('discount-amount');
+        const totalEl = document.getElementById('total');
+        const discountLabel = document.getElementById('discount-label');
+
+        if (selectedServices.length === 0) {
+            empty.classList.remove('hidden');
+            list.classList.add('hidden');
+            footer.classList.add('hidden');
+            return;
+        }
+
+        empty.classList.add('hidden');
+        list.classList.remove('hidden');
+        footer.classList.remove('hidden');
+
+        list.innerHTML = selectedServices.map(s => `
+            <div class="flex justify-between items-center animate-fade-in">
+                <span class="text-sm font-medium">${s.name}</span>
+                <span class="text-sm font-bold text-zinc-900">${s.price} ₽</span>
+            </div>
+        `).join('');
+
+        const subtotal = selectedServices.reduce((acc, s) => acc + s.price, 0);
+        let discountPercent = selectedServices.length >= 3 ? 15 : (selectedServices.length >= 2 ? 10 : 0);
+        const discount = Math.floor(subtotal * (discountPercent / 100));
+        const total = subtotal - discount;
+
+        discountLabel.innerText = `Скидка Combo (${discountPercent}%)`;
+        subtotalEl.innerText = `${subtotal} ₽`;
+        discountEl.innerText = `-${discount} ₽`;
+        totalEl.innerText = `${total} ₽`;
+    }
+
+    function bookCombo() {
+        if (selectedServices.length < 2) return alert('Выберите минимум 2 услуги');
+        // In a real app we'd post to /booking/combo
+        const ids = selectedServices.map(s => s.id).join(',');
+        window.location.href = `/booking?combo=${ids}`;
+    }
+</script>
+
+<%- include('footer') %>

@@ -1,0 +1,191 @@
+<%- include('header') %>
+
+<section class="py-12 max-w-4xl mx-auto px-4">
+    <div class="glass p-6 md:p-16 rounded-3xl shadow-2xl">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold tracking-tighter mb-4">Онлайн бронирование</h1>
+            <p class="text-zinc-500">Выберите услугу и удобное время для вашего отдыха</p>
+        </div>
+
+        <% if (locals.error) { %>
+            <div class="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-700 text-sm animate-shake">
+                <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                <%= locals.error %>
+            </div>
+        <% } %>
+
+        <% if (user) { %>
+            <form action="/booking" method="POST" class="space-y-8">
+                <div id="weather-warning" class="hidden mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-700 text-sm animate-pulse">
+                    <i data-lucide="cloud-rain" class="w-5 h-5"></i>
+                    <span>Внимание! По прогнозу ожидается дождь. Мероприятие может быть перенесено.</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="lg:col-span-1">
+                        <label class="block text-xs font-bold uppercase text-zinc-500 mb-3">Выберите услугу</label>
+                        <select name="service_id" required onchange="updatePrice()" class="w-full px-5 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all">
+                            <% services.forEach(service => { %>
+                                <option value="<%= service.id %>" <%= selectedServiceId == service.id ? 'selected' : '' %>>
+                                    <%= service.name %> — <%= service.price %> ₽
+                                </option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-zinc-500 mb-3">Дата</label>
+                        <input type="date" id="booking_date_raw" name="date_day" required onchange="updatePrice()" class="w-full px-5 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all">
+                        <script>
+                            document.getElementById('booking_date_raw').min = new Date().toISOString().split('T')[0];
+                            
+                            const services = <%- JSON.stringify(services) %>;
+                            function updatePrice() {
+                                const serviceId = document.getElementsByName('service_id')[0].value;
+                                const dateVal = document.getElementById('booking_date_raw').value;
+                                const guests = document.getElementsByName('guests')[0].value;
+                                const priceDisplay = document.getElementById('price-summary');
+                                const bundleBox = document.getElementById('bundle-offer');
+                                const weatherBox = document.getElementById('weather-warning');
+                                
+                                if (!serviceId || !dateVal) return;
+                                
+                                const service = services.find(s => s.id == serviceId);
+                                const date = new Date(dateVal);
+                                const day = date.getDay();
+                                const isWeekend = day === 0 || day === 6;
+                                
+                                // Weather logic from server
+                                const isRainy = '<%= weather.conditions %>' === 'rain';
+                                if (service.category === 'active' && isRainy) {
+                                    weatherBox.classList.remove('hidden');
+                                    weatherBox.innerHTML = `
+                                        <i data-lucide="cloud-lightning" class="w-5 h-5 text-amber-600"></i>
+                                        <span>Внимание! По прогнозу ожидается дождь. Для ${service.name} возможны ограничения или перенос.</span>
+                                    `;
+                                    if (window.lucide) window.lucide.createIcons();
+                                } else {
+                                    weatherBox.classList.add('hidden');
+                                }
+
+                                let price = isWeekend && service.weekend_price ? service.weekend_price : service.price;
+                                let total = price * guests;
+                                
+                                priceDisplay.innerHTML = `
+                                    <div class="flex justify-between items-center bg-zinc-900 text-white p-6 rounded-2xl">
+                                        <div>
+                                            <div class="text-[10px] uppercase font-bold text-zinc-400">Предварительная стоимость</div>
+                                            <div class="text-xl font-bold">${total} ₽</div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-[10px] uppercase font-bold text-zinc-400">Услуга и Лимиты</div>
+                                            <div class="text-xs">${service.name} (Макс: ${service.capacity || 10} чел.)</div>
+                                        </div>
+                                    </div>
+                                `;
+
+                                // Smart Recommendations UI logic
+                                if (bundleBox) {
+                                    if (service.category === 'active' || service.name.includes('Квадро') || service.name.includes('Сплав')) {
+                                        bundleBox.innerHTML = `
+                                            <div id="bundle-container" class="bg-indigo-50 border border-indigo-200 p-6 rounded-3xl flex items-center justify-between gap-6 animate-fade-in shadow-lg shadow-indigo-100 mb-8">
+                                                <div class="flex items-center gap-4 text-left">
+                                                    <div class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shrink-0">
+                                                        <i data-lucide="sparkles"></i>
+                                                    </div>
+                                                    <div>
+                                                        <input type="checkbox" name="bundle_service" id="bundle_check" value="banya" class="hidden">
+                                                        <h4 class="font-bold text-indigo-900 leading-tight text-sm">Умная рекомендация!</h4>
+                                                        <p class="text-[10px] text-indigo-700">После активного отдыха идеально подойдет "Баня на дровах". Скидка 15% при совместном бронировании.</p>
+                                                    </div>
+                                                </div>
+                                                <button type="button" id="bundle-btn" onclick="toggleBundle()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl text-[10px] font-bold hover:bg-indigo-700 transition-all whitespace-nowrap shadow-md">
+                                                    Добавить +
+                                                </button>
+                                            </div>
+                                        `;
+                                        bundleBox.classList.remove('hidden');
+                                        if (window.lucide) window.lucide.createIcons();
+                                    } else {
+                                        bundleBox.classList.add('hidden');
+                                    }
+                                }
+                            }
+
+                            function toggleBundle() {
+                                const check = document.getElementById('bundle_check');
+                                const btn = document.getElementById('bundle-btn');
+                                const container = document.getElementById('bundle-container');
+                                
+                                if (check.checked) {
+                                    check.checked = false;
+                                    btn.innerHTML = 'Добавить +';
+                                    btn.className = 'bg-indigo-600 text-white px-6 py-3 rounded-xl text-[10px] font-bold hover:bg-indigo-700 transition-all whitespace-nowrap shadow-md';
+                                    container.className = 'bg-indigo-50 border border-indigo-200 p-6 rounded-3xl flex items-center justify-between gap-6 animate-fade-in shadow-lg shadow-indigo-100 mb-8';
+                                } else {
+                                    check.checked = true;
+                                    btn.innerHTML = 'Добавлено ✓';
+                                    btn.className = 'bg-emerald-600 text-white px-6 py-3 rounded-xl text-[10px] font-bold transition-all whitespace-nowrap shadow-md';
+                                    container.className = 'bg-emerald-50 border border-emerald-200 p-6 rounded-3xl flex items-center justify-between gap-6 animate-fade-in shadow-lg shadow-emerald-100 mb-8';
+                                }
+                            }
+                            window.addEventListener('DOMContentLoaded', updatePrice);
+                        </script>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-zinc-500 mb-3">Время (слот)</label>
+                        <select name="date_slot" required class="w-full px-5 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all">
+                            <option value="10:00">10:00</option>
+                            <option value="12:00">12:00</option>
+                            <option value="14:00">14:00</option>
+                            <option value="16:00">16:00</option>
+                            <option value="18:00">18:00</option>
+                            <option value="20:00">20:00</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-zinc-500 mb-3">Гостей</label>
+                        <input type="number" name="guests" min="1" max="20" value="1" required onchange="updatePrice()" class="w-full px-5 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-zinc-500 mb-3">Промокод (если есть)</label>
+                        <input type="text" name="promo_code" class="w-full px-5 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-indigo-500 transition-all font-mono uppercase" placeholder="Введите код">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-zinc-500 mb-3">Ваши пожелания</label>
+                        <textarea name="wishes" rows="1" class="w-full px-5 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all resize-none" placeholder="Дополнительно..."></textarea>
+                    </div>
+                </div>
+
+                <div id="bundle-offer" class="hidden"></div>
+                <div id="price-summary" class="mb-4"></div>
+
+                <div class="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 flex items-start gap-4">
+                    <i data-lucide="info" class="text-emerald-600 w-6 h-6 shrink-0"></i>
+                    <p class="text-sm text-emerald-800 leading-relaxed">
+                        После отправки заявки наш менеджер свяжется с вами в течение 15 минут для подтверждения бронирования и уточнения деталей оплаты.
+                    </p>
+                </div>
+
+                <button type="submit" class="w-full py-5 bg-emerald-600 text-white rounded-2xl font-bold text-lg hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200 flex items-center justify-center gap-3">
+                    <i data-lucide="calendar-check"></i>
+                    Отправить заявку
+                </button>
+            </form>
+        <% } else { %>
+            <div class="text-center py-12 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-200">
+                <i data-lucide="lock" class="w-12 h-12 text-zinc-300 mx-auto mb-4"></i>
+                <h3 class="text-xl font-bold mb-2">Требуется авторизация</h3>
+                <p class="text-zinc-500 mb-8">Чтобы забронировать услугу, пожалуйста, войдите в свой аккаунт.</p>
+                <div class="flex gap-4 justify-center">
+                    <a href="/login" class="px-8 py-3 bg-zinc-900 text-white rounded-xl font-bold">Войти</a>
+                    <a href="/register" class="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold">Регистрация</a>
+                </div>
+            </div>
+        <% } %>
+    </div>
+</section>
+
+<%- include('footer') %>

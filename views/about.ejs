@@ -1,0 +1,40 @@
+<%- include('header') %>
+
+<section class="py-12 max-w-7xl mx-auto px-4">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-24">
+        <div>
+            <h1 class="text-5xl font-bold tracking-tighter mb-8 leading-tight">История создания <span class="text-emerald-600">Нико</span></h1>
+            <p class="text-zinc-600 text-lg mb-6 leading-relaxed">Всё началось с мечты о месте, где каждый сможет почувствовать настоящую свободу. Мы искали идеальный уголок природы, где лес встречается с рекой, а тишина нарушается только пением птиц.</p>
+            <p class="text-zinc-600 text-lg mb-8 leading-relaxed">Сегодня Нико — это не просто база отдыха, это сообщество людей, влюбленных в жизнь, приключения и комфорт. Мы постоянно развиваемся, добавляя новые услуги и улучшая наш сервис.</p>
+            <div class="grid grid-cols-3 gap-8">
+                <div>
+                    <div class="text-3xl font-bold text-emerald-600 mb-1">10+</div>
+                    <div class="text-xs text-zinc-400 font-bold uppercase tracking-widest">Лет опыта</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-emerald-600 mb-1">5000+</div>
+                    <div class="text-xs text-zinc-400 font-bold uppercase tracking-widest">Гостей в год</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-emerald-600 mb-1">20+</div>
+                    <div class="text-xs text-zinc-400 font-bold uppercase tracking-widest">Услуг</div>
+                </div>
+            </div>
+        </div>
+        <div class="relative">
+            <div class="aspect-square rounded-3xl overflow-hidden shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-700">
+                <img src="<%= optImg('https://images.unsplash.com/photo-1470770841072-f978cf4d019e', 800) %>" loading="lazy" class="w-full h-full object-cover">
+            </div>
+            <div class="absolute -bottom-10 -left-10 w-64 h-64 rounded-3xl overflow-hidden shadow-2xl -rotate-6 hidden md:block">
+                <img src="<%= optImg('https://images.unsplash.com/photo-1533587851505-d119e13fa0d7', 400) %>" loading="lazy" class="w-full h-full object-cover">
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-zinc-900 text-white p-12 md:p-20 rounded-[3rem] text-center">
+        <h2 class="text-4xl font-bold mb-8">Наша миссия</h2>
+        <p class="text-2xl font-light italic opacity-80 max-w-4xl mx-auto leading-relaxed">"Дарить людям незабываемые эмоции, объединяя комфорт современного отдыха с первозданной красотой природы."</p>
+    </div>
+</section>
+
+<%- include('footer') %>

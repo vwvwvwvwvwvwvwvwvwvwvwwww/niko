@@ -1,0 +1,121 @@
+    </main>
+
+    <footer class="bg-zinc-900 text-white py-12 mt-20">
+        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+                <h3 class="text-xl font-bold mb-4">НИКО</h3>
+                <p class="text-zinc-400 text-sm">Ваш идеальный отдых в гармонии с природой и активными приключениями.</p>
+            </div>
+            <div>
+                <h4 class="font-bold mb-4">Навигация</h4>
+                <ul class="text-zinc-400 text-sm space-y-4">
+                    <li><a href="/" class="hover:text-white flex items-center gap-2 transition-colors"><i data-lucide="home" class="w-4 h-4"></i> Главная</a></li>
+                    <li><a href="/services" class="hover:text-white flex items-center gap-2 transition-colors"><i data-lucide="compass" class="w-4 h-4"></i> Услуги</a></li>
+                    <li><a href="/booking" class="hover:text-white flex items-center gap-2 transition-colors"><i data-lucide="calendar" class="w-4 h-4"></i> Бронирование</a></li>
+                    <li><a href="/faq" class="hover:text-white flex items-center gap-2 transition-colors"><i data-lucide="help-circle" class="w-4 h-4"></i> Частые вопросы</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold mb-4">Контакты</h4>
+                <ul class="text-zinc-400 text-sm space-y-4">
+                    <li class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                            <i data-lucide="phone" class="w-4 h-4 text-emerald-500"></i>
+                        </div>
+                        +7 (999) 123-45-67
+                    </li>
+                    <li class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                            <i data-lucide="mail" class="w-4 h-4 text-emerald-500"></i>
+                        </div>
+                        info@niko-base.ru
+                    </li>
+                    <li class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-emerald-500"></i>
+                        </div>
+                        Лесной проезд, 15
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold mb-4">Соцсети</h4>
+                <div class="flex gap-4">
+                    <a href="https://t.me/niko_base" target="_blank" class="hover:text-emerald-500 flex items-center gap-1"><i data-lucide="send" class="w-5 h-5"></i> <span class="text-[10px]">TG</span></a>
+                    <a href="https://vk.com/niko_base" target="_blank" class="hover:text-emerald-500 flex items-center gap-1"><i data-lucide="layout" class="w-5 h-5"></i> <span class="text-[10px]">VK</span></a>
+                </div>
+            </div>
+        </div>
+        <div class="max-w-7xl mx-auto px-4 border-t border-white/10 mt-12 pt-8 text-center text-zinc-500 text-xs">
+            © 2026 База отдыха Нико. Все права защищены.
+        </div>
+    </footer>
+
+    <script>
+        function initIcons() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            } else {
+                console.warn('Lucide is not loaded yet');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', initIcons);
+        window.addEventListener('load', initIcons);
+        
+        // Mobile Menu
+        (function() {
+            const btn = document.getElementById('mobile-menu-toggle');
+            const menu = document.getElementById('mobile-menu');
+            const iconOpen = document.getElementById('menu-icon-open');
+            const iconClose = document.getElementById('menu-icon-close');
+
+            if (btn && menu) {
+                btn.addEventListener('click', () => {
+                    menu.classList.toggle('hidden');
+                    iconOpen?.classList.toggle('hidden');
+                    iconClose?.classList.toggle('hidden');
+                });
+            }
+        })();
+
+        // Scroll Top
+        (function() {
+            const btn = document.getElementById('scroll-top');
+            if (btn) {
+                window.addEventListener('scroll', () => {
+                    if (window.scrollY > 300) {
+                        btn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+                    } else {
+                        btn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+                    }
+                });
+
+                btn.addEventListener('click', () => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+            }
+        })();
+
+        // Weather update from server-side data
+        function updateWeather() {
+            const tempEl = document.getElementById('weather-temp');
+            const humEl = document.getElementById('weather-hum');
+            const pressEl = document.getElementById('weather-press');
+            const iconMain = document.getElementById('weather-icon-main');
+            
+            <% if (typeof weather !== 'undefined' && weather) { %>
+                if (tempEl) tempEl.innerText = `<%= weather.temp > 0 ? '+' : '' %><%= weather.temp %>°C`;
+                if (humEl) humEl.innerText = `<%= weather.humidity %>`;
+                if (pressEl) pressEl.innerText = `<%= weather.pressure %>`;
+                if (iconMain) {
+                   const iconName = "<%= weather.conditions === 'rain' ? 'cloud-rain' : (weather.conditions === 'cloudy' ? 'cloud' : 'sun') %>";
+                   iconMain.setAttribute('data-lucide', iconName);
+                   if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
+            <% } %>
+        }
+        updateWeather();
+    </script>
+</body>
+</html>

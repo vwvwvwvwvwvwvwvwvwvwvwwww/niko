@@ -1,0 +1,125 @@
+<%- include('header') %>
+
+<section class="py-12 max-w-7xl mx-auto px-4">
+    <div class="text-center mb-16">
+        <h1 class="text-5xl font-bold tracking-tighter mb-4">Галерея</h1>
+        <p class="text-zinc-500">Посмотрите, как отдыхают наши гости в Нико</p>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
+        <% const images = [
+            'https://images.unsplash.com/photo-1533587851505-d119e13fa0d7', // Camping
+            'https://images.unsplash.com/photo-1501785888041-af3ef285b470', // Lake/Nature
+            'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b', // Mountains
+            'https://images.unsplash.com/photo-1531956461690-939999056637', // Quad
+            'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a', // Horse
+            'https://images.unsplash.com/photo-1530866495547-15bcdc58440a', // Rafting
+            'https://images.unsplash.com/photo-1595246140625-573b715d11dc', // Paintball
+            'https://images.unsplash.com/photo-1519681393784-d120267933ba', // Cabin/Snow
+            'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4', // Tent
+            'https://images.unsplash.com/photo-1470770841072-f978cf4d019e', // Landscape
+            'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7', // Forest
+            'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05'  // Nature
+        ] %>
+
+        <% images.forEach((img, index) => { %>
+            <div onclick="openLightbox('<%= optImg(img, 1200) %>')" class="group relative aspect-square overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-700 cursor-pointer">
+                <img src="<%= optImg(img, 400) %>" alt="Gallery Image" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <i data-lucide="maximize" class="text-white w-8 h-8"></i>
+                </div>
+            </div>
+        <% }) %>
+    </div>
+
+    <!-- Virtual Tour 360 Section -->
+    <div class="mt-32">
+        <div class="text-center mb-16">
+            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600 block mb-4">Интерактив</span>
+            <h2 class="text-5xl font-black text-zinc-900 tracking-tighter">Виртуальный <span class="italic text-zinc-400">360°</span> Тур</h2>
+        </div>
+
+        <div class="relative group rounded-[4rem] overflow-hidden border border-zinc-100 shadow-2xl aspect-[21/9]">
+            <!-- Simulated 360 Viewer -->
+            <div id="panorama-viewer" class="w-full h-full bg-cover bg-center cursor-move" style="background-image: url('<%= optImg('https://images.unsplash.com/photo-1542718610-a1d656d1884c', 1200) %>'); background-size: 200% auto; transition: background-position 0.1s linear;">
+                <div class="absolute inset-0 bg-black/20 flex items-center justify-center">
+                    <div class="text-center text-white p-8 bg-black/40 backdrop-blur-md rounded-3xl group-hover:opacity-0 transition-opacity">
+                        <i data-lucide="move" class="w-12 h-12 mx-auto mb-4"></i>
+                        <p class="font-bold">Используйте мышь для осмотра участка</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="absolute bottom-10 left-10 p-6 bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl flex items-center gap-6">
+                <button class="w-12 h-12 bg-zinc-900 text-white rounded-2xl flex items-center justify-center hover:scale-110 transition-transform">
+                    <i data-lucide="map-pin"></i>
+                </button>
+                <div>
+                    <h4 class="font-bold text-zinc-900">Веранда домика №4</h4>
+                    <p class="text-xs text-zinc-500">Вид на сосновый бор</p>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            const viewer = document.getElementById('panorama-viewer');
+            let isDragging = false;
+            let startX;
+            let bgPos = 50;
+
+            viewer.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.pageX;
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const x = e.pageX;
+                const walk = (x - startX) * 0.1;
+                bgPos += walk;
+                viewer.style.backgroundPositionX = `${bgPos}%`;
+                startX = x;
+            });
+        </script>
+    </div>
+</section>
+
+<!-- Lightbox Modal -->
+<div id="lightbox" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <button onclick="closeLightbox()" class="absolute top-8 right-8 text-white hover:text-emerald-500 transition-colors">
+        <i data-lucide="x" class="w-10 h-10"></i>
+    </button>
+    <img id="lightbox-img" src="" class="max-w-full max-h-full rounded-2xl shadow-2xl transform scale-95 transition-transform duration-300">
+</div>
+
+<script>
+    function openLightbox(src) {
+        const lightbox = document.getElementById('lightbox');
+        const img = document.getElementById('lightbox-img');
+        img.src = src;
+        lightbox.classList.remove('hidden');
+        setTimeout(() => {
+            lightbox.classList.add('opacity-100');
+            img.classList.remove('scale-95');
+            img.classList.add('scale-100');
+        }, 10);
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+        const lightbox = document.getElementById('lightbox');
+        const img = document.getElementById('lightbox-img');
+        lightbox.classList.remove('opacity-100');
+        img.classList.add('scale-95');
+        setTimeout(() => {
+            lightbox.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }, 300);
+    }
+</script>
+
+<%- include('footer') %>

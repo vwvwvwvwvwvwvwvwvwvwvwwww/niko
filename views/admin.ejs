@@ -1,0 +1,772 @@
+<%- include('header') %>
+
+<section class="py-12 max-w-7xl mx-auto px-4">
+    <div class="flex justify-between items-center mb-12">
+        <h1 class="text-4xl font-bold tracking-tighter flex items-center gap-3">
+            <i data-lucide="shield-check" class="text-amber-600"></i>
+            Админ-панель
+        </h1>
+        <div class="flex gap-4">
+            <div class="glass px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                Система онлайн
+            </div>
+        </div>
+    </div>
+
+    <% if (locals.error) { %>
+        <div class="mb-12 p-6 bg-red-50 border border-red-100 rounded-3xl flex items-center gap-4 text-red-700 font-bold shadow-sm">
+            <i data-lucide="alert-octagon" class="w-6 h-6"></i>
+            <%= locals.error %>
+        </div>
+    <% } %>
+
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-8 mb-12">
+        <div class="glass p-8 rounded-3xl border border-zinc-100 shadow-xl shadow-zinc-100">
+            <div class="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2">Всего броней</div>
+            <div class="text-4xl font-bold"><%= bookings.length %></div>
+        </div>
+        <div class="glass p-8 rounded-3xl border border-zinc-100 shadow-xl shadow-zinc-100">
+            <div class="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2">В ожидании</div>
+            <div class="text-4xl font-bold text-amber-600"><%= bookings.filter(b => b.status === 'pending').length %></div>
+        </div>
+        <div class="glass p-8 rounded-3xl border border-zinc-100 shadow-xl shadow-zinc-100">
+            <div class="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2">Выручка (Оплачено)</div>
+            <div class="text-4xl font-bold text-emerald-600"><%= bookings.filter(b => b.is_paid).reduce((acc, b) => acc + b.total_price, 0) %> ₽</div>
+        </div>
+        <div class="glass p-8 rounded-3xl border border-zinc-100 shadow-xl shadow-zinc-100">
+            <div class="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2">Пользователей</div>
+            <div class="text-4xl font-bold"><%= users.length %></div>
+        </div>
+        <div class="glass p-8 rounded-3xl border border-zinc-100 shadow-xl shadow-zinc-100">
+            <div class="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2">Промокоды</div>
+            <div class="text-4xl font-bold text-indigo-600"><%= promoCodes.length %></div>
+        </div>
+    </div>
+
+    <div class="glass p-10 rounded-3xl shadow-2xl border border-zinc-100 overflow-hidden mb-12">
+        <h2 class="text-2xl font-bold mb-8">Управление бронированиями (Заявки)</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="text-[10px] font-bold uppercase text-zinc-400 border-b border-zinc-100">
+                        <th class="pb-4">Пользователь</th>
+                        <th class="pb-4">Услуга</th>
+                        <th class="pb-4">Дата</th>
+                        <th class="pb-4">Статус</th>
+                        <th class="pb-4 text-right">Действия</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-50">
+                    <% bookings.forEach(booking => { %>
+                        <tr class="group hover:bg-zinc-50 transition-colors">
+                            <td class="py-6">
+                                <div class="font-bold text-sm"><%= booking.user_name %></div>
+                                <div class="text-xs text-zinc-400"><%= booking.user_email %></div>
+                            </td>
+                            <td class="py-6">
+                                <div class="font-bold text-sm"><%= booking.service_name %></div>
+                                <div class="text-xs text-emerald-600 font-bold">Итого: <%= booking.total_price || (booking.price * booking.guests) %> ₽</div>
+                                <div class="text-[10px] text-zinc-400 mt-1">
+                                    Базовая: <%= booking.price %> ₽ | Гостей: <%= booking.guests %>
+                                    <% if(booking.wishes) { %>
+                                        <br>Пожелания: <%= booking.wishes %>
+                                    <% } %>
+                                </div>
+                            </td>
+                            <td class="py-6 text-sm text-zinc-500">
+                                <%= new Date(booking.booking_date).toLocaleDateString('ru-RU') %>
+                            </td>
+                            <td class="py-6">
+                                <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest
+                                    <%= booking.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 
+                                       booking.status === 'pending' ? 'bg-amber-100 text-amber-700' : 
+                                       'bg-red-100 text-red-700' %>">
+                                    <%= booking.status === 'confirmed' ? 'Подтверждено' : 
+                                       booking.status === 'pending' ? 'В ожидании' : 'Отменено' %>
+                                </span>
+                            </td>
+                            <td class="py-6 text-right">
+                                <div class="flex justify-end gap-2">
+                                    <form action="/admin/booking/status" method="POST" class="inline">
+                                        <input type="hidden" name="booking_id" value="<%= booking.id %>">
+                                        <input type="hidden" name="status" value="confirmed">
+                                        <button type="submit" class="p-2 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all" title="Подтвердить">
+                                            <i data-lucide="check" class="w-4 h-4"></i>
+                                        </button>
+                                    </form>
+                                    <form action="/admin/booking/status" method="POST" class="inline">
+                                        <input type="hidden" name="booking_id" value="<%= booking.id %>">
+                                        <input type="hidden" name="status" value="cancelled">
+                                        <button type="submit" class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all" title="Отменить">
+                                            <i data-lucide="x" class="w-4 h-4"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-12">
+        <!-- Users Management -->
+        <div class="glass p-10 rounded-3xl shadow-xl border border-zinc-100">
+            <h2 class="text-2xl font-bold mb-8">Пользователи</h2>
+            <div class="overflow-x-auto max-h-[400px]">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="text-[10px] font-bold uppercase text-zinc-400 border-b border-zinc-100">
+                            <th class="pb-4">Имя / Email</th>
+                            <th class="pb-4">Баллы</th>
+                            <th class="pb-4 text-right">Уд.</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-50">
+                        <% users.forEach(user => { %>
+                            <tr>
+                                <td class="py-4">
+                                    <div class="font-bold text-sm"><%= user.name %></div>
+                                    <div class="text-[10px] text-zinc-400"><%= user.email %></div>
+                                    <% if (user.telegram_chat_id) { %>
+                                        <div class="text-[8px] text-emerald-600 font-bold uppercase flex items-center gap-1 mt-1">
+                                            <i data-lucide="bell" class="w-2 h-2"></i> TG: <%= user.telegram_chat_id %>
+                                        </div>
+                                    <% } else { %>
+                                        <div class="text-[8px] text-zinc-300 font-bold uppercase flex items-center gap-1 mt-1">
+                                            <i data-lucide="bell-off" class="w-2 h-2"></i> TG не привязан
+                                        </div>
+                                    <% } %>
+                                    <div class="mt-2">
+                                        <form action="/admin/user/role" method="POST" class="inline-flex gap-1 items-center">
+                                            <input type="hidden" name="user_id" value="<%= user.id %>">
+                                            <select name="role" class="text-[10px] bg-zinc-100 rounded px-1 py-0.5 border-none outline-none focus:ring-1 ring-zinc-400">
+                                                <option value="user" <%= user.role === 'user' ? 'selected' : '' %>>User</option>
+                                                <option value="instructor" <%= user.role === 'instructor' ? 'selected' : '' %>>Instructor</option>
+                                                <option value="admin" <%= user.role === 'admin' ? 'selected' : '' %>>Admin</option>
+                                            </select>
+                                            <button type="submit" class="text-[10px] bg-zinc-200 px-2 py-0.5 rounded hover:bg-zinc-300 transition-colors">OK</button>
+                                        </form>
+                                    </div>
+                                </td>
+                                <td class="py-4">
+                                    <span class="font-bold text-amber-600 text-xs"><%= user.points %></span>
+                                </td>
+                                <td class="py-4 text-right">
+                                    <form action="/admin/user/delete" method="POST" onsubmit="return confirm('Удалить пользователя?')">
+                                        <input type="hidden" name="user_id" value="<%= user.id %>">
+                                        <button type="submit" class="text-red-500 hover:text-red-700">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Promo Codes Management -->
+        <div class="glass p-10 rounded-3xl shadow-xl border border-zinc-100">
+            <h2 class="text-2xl font-bold mb-8">Промокоды</h2>
+            <form action="/admin/promo/add" method="POST" class="mb-8 grid grid-cols-2 gap-3">
+                <input type="text" name="code" placeholder="КОД" required class="col-span-2 px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm outline-none focus:ring-2 ring-zinc-900">
+                <input type="number" name="discount_percent" placeholder="Скидка %" required class="px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm outline-none focus:ring-2 ring-zinc-900">
+                <button type="submit" class="bg-zinc-900 text-white rounded-xl text-xs font-bold hover:bg-zinc-800">Добавить</button>
+            </form>
+            <div class="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                <% promoCodes.forEach(promo => { %>
+                    <div class="flex items-center justify-between p-3 bg-zinc-50 rounded-2xl border border-zinc-100">
+                        <div>
+                            <div class="font-bold text-sm"><%= promo.code %></div>
+                            <div class="text-[10px] text-zinc-400 font-bold uppercase">-<%= promo.discount_percent %>% скидка</div>
+                        </div>
+                        <form action="/admin/promo/toggle" method="POST">
+                            <input type="hidden" name="id" value="<%= promo.id %>">
+                            <input type="hidden" name="is_active" value="<%= promo.is_active %>">
+                            <button type="submit" class="w-10 h-6 <%= promo.is_active ? 'bg-emerald-500' : 'bg-red-500' %> rounded-full relative transition-colors">
+                                <div class="w-4 h-4 bg-white rounded-full absolute top-1 <%= promo.is_active ? 'right-1' : 'left-1' %> transition-all"></div>
+                            </button>
+                        </form>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+
+        <!-- Reviews Management -->
+        <div class="glass p-10 rounded-3xl shadow-xl border border-zinc-100">
+            <h2 class="text-2xl font-bold mb-8">Отзывы</h2>
+            <div class="space-y-6 max-h-[400px] overflow-y-auto pr-4">
+                <% reviews.forEach(review => { %>
+                    <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 relative group">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="font-bold text-sm"><%= review.user_name %></div>
+                                <div class="flex gap-1 text-amber-400">
+                                    <% for(let i=0; i<review.rating; i++) { %>
+                                        <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                                    <% } %>
+                                </div>
+                            </div>
+                            <form action="/admin/review/delete" method="POST">
+                                <input type="hidden" name="review_id" value="<%= review.id %>">
+                                <button type="submit" class="text-zinc-400 hover:text-red-500 transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <p class="text-[10px] text-zinc-600 italic">"<%= review.content %>"</p>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Chat Management -->
+    <div id="live-chat" class="glass p-10 rounded-3xl shadow-2xl border border-zinc-100 mb-12">
+        <h2 class="text-2xl font-bold mb-8 flex items-center gap-3">
+            <i data-lucide="message-square" class="text-emerald-600"></i>
+            Управление чатами
+        </h2>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[600px]">
+            <!-- Chats List -->
+            <div class="lg:col-span-4 border-r border-zinc-100 pr-4 overflow-y-auto flex flex-col gap-2" id="admin-chat-list">
+                <div class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Клиенты</div>
+                <div class="animate-pulse space-y-4">
+                    <div class="h-16 bg-zinc-100 rounded-2xl"></div>
+                    <div class="h-16 bg-zinc-100 rounded-2xl"></div>
+                </div>
+            </div>
+            <!-- Active Chat -->
+            <div class="lg:col-span-8 flex flex-col h-full bg-zinc-50/50 rounded-3xl overflow-hidden relative">
+                <div id="no-chat-selected" class="absolute inset-0 flex items-center justify-center text-zinc-400 flex-col gap-4">
+                    <i data-lucide="message-circle" class="w-12 h-12 opacity-20"></i>
+                    <span class="font-medium">Выберите чат для начала общения</span>
+                </div>
+                <div id="admin-chat-window" class="hidden flex flex-col h-full">
+                    <div class="bg-white p-4 border-b border-zinc-100 flex justify-between items-center shadow-sm">
+                        <div>
+                            <div class="font-bold text-sm" id="active-chat-user-name">Клиент</div>
+                            <div class="text-[10px] text-zinc-400" id="active-chat-user-email">email</div>
+                        </div>
+                        <button onclick="resolveChat()" class="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full hover:bg-emerald-600 hover:text-white transition-all">Завершить вызов</button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-6 space-y-4" id="admin-chat-messages">
+                        <!-- Messages -->
+                    </div>
+                    <div class="p-4 bg-white border-t border-zinc-100 flex gap-2">
+                        <input type="text" id="admin-chat-input" placeholder="Введите ответ..." class="flex-1 bg-zinc-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 ring-emerald-500 transition-all">
+                        <button onclick="sendAdminReply()" class="p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUserId = null;
+
+        async function fetchChats() {
+            try {
+                const res = await fetch('/api/admin/chats');
+                const chats = await res.json();
+                const list = document.getElementById('admin-chat-list');
+                list.innerHTML = `<div class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Клиенты</div>`;
+                
+                chats.forEach(chat => {
+                    const div = document.createElement('div');
+                    div.className = `p-4 rounded-2xl cursor-pointer transition-all border flex flex-col gap-1 ${chat.id === currentUserId ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-transparent hover:bg-zinc-100'}`;
+                    div.onclick = () => selectChat(chat.id, chat.name, chat.email);
+                    
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-sm truncate">${chat.name}</span>
+                            ${chat.needs_operator ? '<span class="w-2 h-2 bg-red-500 rounded-full animate-ping"></span>' : ''}
+                        </div>
+                        <div class="text-[10px] text-zinc-400 truncate">${chat.last_message || 'Нет сообщений'}</div>
+                        <div class="text-[8px] text-zinc-300 font-bold uppercase">${chat.last_message_time ? new Date(chat.last_message_time).toLocaleTimeString() : ''}</div>
+                    `;
+                    list.appendChild(div);
+                });
+            } catch (e) {
+                console.error('Fetch chats error:', e);
+            }
+        }
+
+        async function selectChat(userId, name, email) {
+            currentUserId = userId;
+            document.getElementById('no-chat-selected').classList.add('hidden');
+            document.getElementById('admin-chat-window').classList.remove('hidden');
+            document.getElementById('active-chat-user-name').textContent = name;
+            document.getElementById('active-chat-user-email').textContent = email;
+            
+            await fetchMessages();
+            fetchChats(); // Refresh list to update selection style
+        }
+
+        async function fetchMessages() {
+            if (!currentUserId) return;
+            try {
+                const res = await fetch(`/api/admin/chat/${currentUserId}`);
+                const messages = await res.json();
+                const container = document.getElementById('admin-chat-messages');
+                container.innerHTML = '';
+                
+                messages.forEach(msg => {
+                    const div = document.createElement('div');
+                    const isClient = msg.sender_role === 'user';
+                    const isAi = msg.sender_role === 'ai';
+                    
+                    div.className = `max-w-[85%] p-3 rounded-2xl text-xs ${
+                        isClient ? 'bg-zinc-200 rounded-tl-none mr-auto' : 
+                        isAi ? 'bg-blue-50 text-blue-800 rounded-tr-none ml-auto border border-blue-100' : 
+                        'bg-emerald-600 text-white rounded-tr-none ml-auto'
+                    }`;
+                    
+                    div.innerHTML = `
+                        <div class="flex justify-between gap-4 mb-1">
+                            <span class="font-black uppercase text-[8px] opacity-50">${isClient ? 'Клиент' : (isAi ? 'Алиса (ИИ)' : 'Админ')}</span>
+                            <span class="text-[8px] opacity-50">${new Date(msg.created_at).toLocaleTimeString()}</span>
+                        </div>
+                        <div>${msg.content}</div>
+                    `;
+                    container.appendChild(div);
+                });
+                container.scrollTop = container.scrollHeight;
+            } catch (e) {
+                console.error('Fetch messages error:', e);
+            }
+        }
+
+        async function sendAdminReply() {
+            const input = document.getElementById('admin-chat-input');
+            const content = input.value.trim();
+            if (!content || !currentUserId) return;
+            
+            try {
+                const res = await fetch('/api/admin/chat/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: currentUserId, content })
+                });
+                if (res.ok) {
+                    input.value = '';
+                    await fetchMessages();
+                }
+            } catch (e) {
+                console.error('Send reply error:', e);
+            }
+        }
+
+        async function resolveChat() {
+            if (!currentUserId || !confirm('Завершить вызов оператора?')) return;
+            try {
+                const res = await fetch('/api/admin/chat/resolve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: currentUserId })
+                });
+                if (res.ok) {
+                    currentUserId = null;
+                    document.getElementById('admin-chat-window').classList.add('hidden');
+                    document.getElementById('no-chat-selected').classList.remove('hidden');
+                    fetchChats();
+                }
+            } catch (e) {
+                console.error('Resolve chat error:', e);
+            }
+        }
+
+        // Poll for updates
+        setInterval(() => {
+            fetchChats();
+            if (currentUserId) fetchMessages();
+        }, 3000);
+
+        async function deleteService(id) {
+            if (!confirm('Вы уверены?')) return;
+            const res = await fetch('/admin/service/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            if (res.ok) location.reload();
+        }
+
+        async function deleteEquipment(id) {
+            if (!confirm('Удалить технику из списка?')) return;
+            const res = await fetch('/admin/equipment/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            if (res.ok) location.reload();
+        }
+
+        function editService(service) {
+            document.getElementById('edit-id').value = service.id;
+            document.getElementById('edit-name').value = service.name;
+            document.getElementById('edit-category').value = service.category;
+            document.getElementById('edit-price').value = service.price;
+            document.getElementById('edit-description').value = service.description;
+            document.getElementById('edit-service-modal').classList.remove('hidden');
+        }
+
+        document.getElementById('edit-service-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            const res = await fetch('/admin/service/edit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) location.reload();
+        });
+
+        document.getElementById('add-service-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            const res = await fetch('/admin/service/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) location.reload();
+        });
+
+        fetchChats();
+    </script>
+    
+    <!-- Staff Coordination Section -->
+    <div id="staff-coordination" class="glass p-10 rounded-3xl shadow-2xl border border-zinc-100 mb-12">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold flex items-center gap-3">
+                <i data-lucide="users" class="text-amber-600"></i>
+                Управление персоналом и техникой
+            </h2>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
+            <!-- Equipment Management -->
+            <div class="space-y-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <i data-lucide="wrench" class="w-5 h-5 text-zinc-600"></i>
+                        Список техники
+                    </h3>
+                    <form action="/admin/equipment/add" method="POST" class="flex gap-2">
+                        <input type="text" name="name" placeholder="Название техники" required class="px-4 py-2 bg-white border border-zinc-200 rounded-xl text-xs outline-none focus:ring-2 ring-zinc-900 shadow-sm">
+                        <button type="submit" class="bg-zinc-900 text-white px-4 py-2 rounded-xl text-[10px] font-bold hover:bg-zinc-800 transition-all">Добавить</button>
+                    </form>
+                </div>
+                <div class="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                    <% equipment.forEach(item => { %>
+                        <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 flex justify-between items-center group">
+                            <div>
+                                <div class="font-bold text-sm flex items-center gap-2">
+                                    <%= item.name %>
+                                    <span class="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider
+                                        <%= item.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 
+                                           item.status === 'repair' ? 'bg-amber-100 text-amber-700' : 
+                                           item.status === 'broken' ? 'bg-red-100 text-red-700' : 'bg-red-200 text-red-800' %>">
+                                        <%= item.status === 'active' ? 'Готова' : 
+                                           item.status === 'repair' ? 'В ремонте' : 
+                                           item.status === 'broken' ? 'Сломана' : 'Требует замены' %>
+                                    </span>
+                                </div>
+                                <div class="text-[10px] text-zinc-400 mt-1">
+                                    <%= item.status_note || 'Нет примечаний' %>
+                                </div>
+                                <div class="text-[8px] text-zinc-300 uppercase mt-1">Проверка: <%= new Date(item.last_check).toLocaleString('ru-RU') %></div>
+                            </div>
+                            <button onclick="deleteEquipment('<%= item.id %>')" class="p-2 text-zinc-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    <% }) %>
+                </div>
+            </div>
+
+            <!-- Staff Ratings and Statuses -->
+            <div class="space-y-6">
+                <h3 class="font-bold text-lg flex items-center gap-2 mb-4">
+                    <i data-lucide="award" class="w-5 h-5 text-amber-500"></i>
+                    Рейтинг сотрудников
+                </h3>
+                <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                    <% instructors.forEach(staff => { %>
+                        <div class="p-5 bg-white rounded-2xl border border-zinc-100 shadow-sm">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <div class="font-black text-sm uppercase tracking-tight text-zinc-900"><%= staff.name %></div>
+                                    <div class="text-[10px] text-zinc-400"><%= staff.email %></div>
+                                </div>
+                                <% 
+                                    let ratingColor = 'text-red-500 bg-red-50';
+                                    if (staff.average_rating > 4.1) ratingColor = 'text-emerald-500 bg-emerald-50';
+                                    else if (staff.average_rating >= 3.5) ratingColor = 'text-amber-500 bg-amber-50';
+                                %>
+                                <div class="px-3 py-1 rounded-full <%= ratingColor %> text-xs font-black flex items-center gap-1 shadow-sm">
+                                    <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                                    <%= (staff.average_rating || 0).toFixed(1) %>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                                <span>Статус: 
+                                    <span class="<%= staff.staff_status === 'ready' ? 'text-emerald-500' : 'text-amber-500' %>">
+                                        <%= staff.staff_status === 'ready' ? 'В сети' : (staff.staff_status === 'busy' ? 'Занят' : 'Вне смены') %>
+                                    </span>
+                                </span>
+                                <span>Задач: <%= staff.total_assignments || 0 %></span>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="font-bold text-lg mb-6 flex items-center gap-2">
+            <i data-lucide="clipboard-list" class="w-5 h-5 text-indigo-600"></i>
+            Распределение новых заявок
+        </h3>
+        
+        <div class="space-y-6">
+            <% if (unassignedBookings.length > 0) { %>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-[10px] uppercase font-bold text-zinc-400 border-b border-zinc-100">
+                                <th class="pb-4">№ Заказа</th>
+                                <th class="pb-4">Клиент / Услуга</th>
+                                <th class="pb-4">Дата / Время</th>
+                                <th class="pb-4">Назначить сотрудника</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-50">
+                            <% unassignedBookings.forEach(booking => { %>
+                                <tr class="hover:bg-zinc-50/50 transition-colors">
+                                    <td class="py-6 font-bold text-sm">#<%= booking.id %></td>
+                                    <td class="py-6">
+                                        <div class="font-bold text-sm"><%= booking.user_name %></div>
+                                        <div class="text-[10px] text-emerald-600 font-bold uppercase"><%= booking.service_name %></div>
+                                    </td>
+                                    <td class="py-6">
+                                        <div class="text-xs font-bold text-zinc-900"><%= new Date(booking.booking_date).toLocaleDateString('ru-RU') %></div>
+                                        <div class="text-[10px] text-zinc-400"><%= new Date(booking.booking_date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) %></div>
+                                    </td>
+                                    <td class="py-6">
+                                        <form action="/admin/assign" method="POST" class="flex gap-2">
+                                            <input type="hidden" name="booking_id" value="<%= booking.id %>">
+                                            <select name="instructor_id" required class="px-4 py-2 bg-white border border-zinc-200 rounded-xl text-xs outline-none focus:ring-2 ring-amber-500">
+                                                <option value="">Выберите сотрудника...</option>
+                                                <% instructors.forEach(i => { %>
+                                                    <option value="<%= i.id %>"><%= i.name %></option>
+                                                <% }) %>
+                                            </select>
+                                            <input type="text" name="note" placeholder="Заметка (необяз.)" class="px-4 py-2 bg-white border border-zinc-200 rounded-xl text-xs outline-none focus:ring-2 ring-amber-500">
+                                            <button type="submit" class="bg-amber-600 text-white px-4 py-2 rounded-xl text-[10px] font-bold hover:bg-amber-700 transition-all">Назначить</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } else { %>
+                <div class="text-center py-20 bg-zinc-50 rounded-3xl">
+                    <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-100">
+                        <i data-lucide="check" class="text-emerald-500"></i>
+                    </div>
+                    <p class="text-zinc-500 text-sm">Все заказы распределены между сотрудниками.</p>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <!-- Telegram Setup Instructions -->
+    <div id="telegram-admin-setup" class="glass p-10 rounded-3xl shadow-2xl border border-zinc-100 mb-12 bg-white">
+        <h2 class="text-2xl font-bold mb-8 flex items-center gap-3">
+            <i data-lucide="bot" class="text-sky-600"></i>
+            Инструкция по настройке Telegram Бота
+        </h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div class="space-y-6">
+                <div class="p-6 bg-zinc-50 rounded-2xl">
+                    <h3 class="font-bold mb-4">1. Создание бота</h3>
+                    <ul class="text-sm text-zinc-600 space-y-3 list-disc list-inside">
+                        <li>Найдите в Telegram <a href="https://t.me/BotFather" class="text-sky-600 font-bold">@BotFather</a></li>
+                        <li>Отправьте команду <b>/newbot</b> и следуйте инструкциям</li>
+                        <li>Скопируйте полученный <b>HTTP API Token</b></li>
+                    </ul>
+                </div>
+                <div class="p-6 bg-zinc-50 rounded-2xl">
+                    <h3 class="font-bold mb-4">2. Получение ID администратора</h3>
+                    <ul class="text-sm text-zinc-600 space-y-3 list-disc list-inside">
+                        <li>Напишите боту <a href="https://t.me/userinfobot" class="text-zinc-900 font-bold">@userinfobot</a></li>
+                        <li>Скопируйте ваш <b>ID</b></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="space-y-6">
+                <div class="p-6 bg-zinc-50 rounded-2xl">
+                    <h3 class="font-bold mb-4">3. Установка переменных окружения</h3>
+                    <p class="text-xs text-zinc-500 mb-4">Для работы уведомлений необходимо добавить следующие переменные в настройки приложения (Settings):</p>
+                    <div class="space-y-2 font-mono text-[10px]">
+                        <div class="p-2 bg-white border border-zinc-100 rounded flex justify-between">
+                            <span class="text-zinc-400">TELEGRAM_BOT_TOKEN</span>
+                            <span class="text-zinc-800 font-black">ваш_токен_из_BotFather</span>
+                        </div>
+                        <div class="p-2 bg-white border border-zinc-100 rounded flex justify-between">
+                            <span class="text-zinc-400">TELEGRAM_ADMIN_CHAT_ID</span>
+                            <span class="text-zinc-800 font-black">ваш_ID_из_userinfobot</span>
+                        </div>
+                    </div>
+                    <div class="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-700">
+                        <b>Важно:</b> После добавления переменных в Settings, приложение автоматически перезапустится и уведомления начнут приходить админу и пользователям.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Services Management -->
+    <div id="services-mgt" class="glass p-10 rounded-3xl shadow-2xl border border-zinc-100 mb-12 bg-white">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold flex items-center gap-3">
+                <i data-lucide="compass" class="text-emerald-600"></i>
+                Управление услугами
+            </h2>
+            <button onclick="document.getElementById('add-service-modal').classList.remove('hidden')" class="bg-emerald-600 text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i> Добавить услугу
+            </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <% services.forEach(service => { %>
+                <div class="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-bold uppercase"><%= service.category %></span>
+                            <span class="text-sm font-black text-zinc-900"><%= service.price %> ₽</span>
+                        </div>
+                        <h3 class="font-bold text-lg mb-2"><%= service.name %></h3>
+                        <p class="text-xs text-zinc-500 line-clamp-3 mb-6"><%= service.description %></p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="editService(JSON.parse(this.dataset.service))" data-service='<%= JSON.stringify(service) %>' class="flex-1 bg-white border border-zinc-200 py-2 rounded-xl text-[10px] font-bold hover:bg-zinc-100 transition-all">Редактировать</button>
+                        <button onclick="deleteService(<%= service.id %>)" class="bg-red-50 text-red-600 p-2 rounded-xl hover:bg-red-100 transition-all border border-red-100">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+    </div>
+
+    <!-- Edit Service Modal -->
+    <div id="edit-service-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2rem] p-10 max-w-lg w-full relative">
+            <h3 class="text-2xl font-bold mb-6">Редактировать услугу</h3>
+            <form id="edit-service-form" class="space-y-4">
+                <input type="hidden" id="edit-id" name="id">
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Название</label>
+                    <input type="text" id="edit-name" name="name" class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 ring-emerald-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Категория</label>
+                    <select id="edit-category" name="category" class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 ring-emerald-500 outline-none">
+                        <option value="active">Активный отдых</option>
+                        <option value="relax">Релакс и уют</option>
+                        <option value="family">Семейное</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Цена (₽)</label>
+                    <input type="number" id="edit-price" name="price" class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 ring-emerald-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Описание</label>
+                    <textarea id="edit-description" name="description" class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 ring-emerald-500 outline-none h-32"></textarea>
+                </div>
+                <div class="flex gap-4 pt-4">
+                    <button type="button" onclick="document.getElementById('edit-service-modal').classList.add('hidden')" class="flex-1 py-3 bg-zinc-100 rounded-xl font-bold text-sm">Отмена</button>
+                    <button type="submit" class="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Service Modal -->
+    <div id="add-service-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2rem] p-10 max-w-lg w-full relative">
+            <h3 class="text-2xl font-bold mb-6">Новая услуга</h3>
+            <form id="add-service-form" class="space-y-4">
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Название</label>
+                    <input type="text" name="name" required class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 ring-emerald-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Категория</label>
+                    <select name="category" required class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 ring-emerald-500 outline-none">
+                        <option value="active">Активный отдых</option>
+                        <option value="relax">Релакс и уют</option>
+                        <option value="family">Семейное</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Цена (₽)</label>
+                    <input type="number" name="price" required class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 ring-emerald-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Картинка (URL)</label>
+                    <input type="text" name="image_url" placeholder="https://..." class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 ring-emerald-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Описание</label>
+                    <textarea name="description" required class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 ring-emerald-500 outline-none h-32"></textarea>
+                </div>
+                <div class="flex gap-4 pt-4">
+                    <button type="button" onclick="document.getElementById('add-service-modal').classList.add('hidden')" class="flex-1 py-3 bg-zinc-100 rounded-xl font-bold text-sm">Отмена</button>
+                    <button type="submit" class="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm">Создать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Questions Management -->
+    <div id="questions" class="glass p-10 rounded-3xl shadow-2xl border border-zinc-100 mb-12">
+        <h2 class="text-2xl font-bold mb-8">Вопросы пользователей</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <% questions.forEach(q => { %>
+                <div class="p-6 bg-zinc-50 rounded-3xl border border-zinc-200">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-xs font-bold text-indigo-600 uppercase tracking-widest"><%= q.user_name %></div>
+                        <div class="text-[10px] text-zinc-400"><%= new Date(q.created_at).toLocaleDateString() %></div>
+                    </div>
+                    <p class="text-sm font-medium mb-6 text-zinc-800">"<%= q.question %>"</p>
+                    
+                    <form action="/admin/question/answer" method="POST" class="space-y-4">
+                        <input type="hidden" name="question_id" value="<%= q.id %>">
+                        <textarea name="answer" placeholder="Ваш ответ..." class="w-full p-4 bg-white border border-zinc-200 rounded-2xl text-xs outline-none focus:ring-2 ring-indigo-500 h-24"><%= q.answer %></textarea>
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="is_public" <%= q.is_public ? 'checked' : '' %> class="rounded border-zinc-300">
+                                <span class="text-[10px] font-bold text-zinc-500 uppercase">Опубликовать</span>
+                            </label>
+                            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-[10px] font-bold hover:bg-indigo-700">Сохранить</button>
+                        </div>
+                    </form>
+                </div>
+            <% }) %>
+        </div>
+    </div>
+</section>
+
+<%- include('footer') %>

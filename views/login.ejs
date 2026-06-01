@@ -1,0 +1,41 @@
+<%- include('header') %>
+
+<section class="min-h-screen flex items-center justify-center py-12 px-4">
+    <div class="max-w-md w-full glass p-10 rounded-3xl shadow-2xl">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold tracking-tighter">С возвращением!</h2>
+            <p class="text-zinc-500 text-sm mt-2">Войдите в свой аккаунт Нико</p>
+        </div>
+        
+        <% if (error) { %>
+            <div class="bg-red-50 text-red-600 p-4 rounded-xl text-xs font-bold mb-6 flex items-center gap-2">
+                <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                <%= error %>
+            </div>
+        <% } %>
+
+        <form action="/login" method="POST" class="space-y-6">
+            <div>
+                <label class="block text-xs font-bold uppercase text-zinc-500 mb-2">Email</label>
+                <div class="relative">
+                    <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400"></i>
+                    <input type="email" name="email" required class="w-full pl-12 pr-4 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all" placeholder="your@email.com">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold uppercase text-zinc-500 mb-2">Пароль</label>
+                <div class="relative">
+                    <i data-lucide="lock" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400"></i>
+                    <input type="password" name="password" required class="w-full pl-12 pr-4 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all" placeholder="••••••••">
+                </div>
+            </div>
+            <button type="submit" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200">Войти</button>
+        </form>
+        
+        <div class="mt-8 text-center text-sm text-zinc-500">
+            Нет аккаунта? <a href="/register" class="text-emerald-600 font-bold hover:underline">Создать аккаунт</a>
+        </div>
+    </div>
+</section>
+
+<%- include('footer') %>

@@ -1,0 +1,68 @@
+<%- include('header') %>
+
+<section class="py-24 max-w-7xl mx-auto px-4">
+    <div class="text-center mb-16">
+        <h1 class="text-5xl font-bold tracking-tighter mb-4">Новости базы отдыха</h1>
+        <p class="text-zinc-500">Будьте в курсе всех событий и акций</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <% news.forEach(item => { %>
+            <div class="group bg-white rounded-[2.5rem] overflow-hidden shadow-xl shadow-zinc-100 border border-zinc-100 hover:shadow-2xl hover:shadow-emerald-100 transition-all duration-500">
+                <div class="h-64 overflow-hidden relative">
+                    <img src="<%= optImg(item.image, 800) %>" alt="<%= item.title %>" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                    <div class="absolute top-6 left-6 px-4 py-2 bg-white/90 backdrop-blur-md rounded-full text-[10px] font-bold uppercase tracking-widest text-zinc-900">
+                        <%= new Date(item.date).toLocaleDateString('ru-RU') %>
+                    </div>
+                </div>
+                <div class="p-10">
+                    <h3 class="text-2xl font-bold mb-4 group-hover:text-emerald-600 transition-colors"><%= item.title %></h3>
+                    <p class="text-zinc-500 text-sm leading-relaxed mb-8"><%= item.content %></p>
+                    <button onclick="openNewsModal('<%= item.title %>', '<%= item.content %>', '<%= optImg(item.image, 1200) %>')" class="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-emerald-600 hover:gap-4 transition-all">
+                        Читать полностью <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        <% }) %>
+    </div>
+</section>
+
+<!-- News Detail Modal -->
+<div id="newsModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm hidden opacity-0 transition-opacity duration-500">
+    <div class="relative w-full max-w-3xl mx-4 bg-white rounded-[2.5rem] overflow-hidden shadow-2xl">
+        <button onclick="closeNewsModal()" class="absolute top-6 right-6 z-10 w-12 h-12 bg-zinc-100 hover:bg-zinc-200 rounded-full flex items-center justify-center text-zinc-900 transition-all">
+            <i data-lucide="x"></i>
+        </button>
+        <div class="h-64 overflow-hidden">
+            <img id="modalImage" src="" class="w-full h-full object-cover">
+        </div>
+        <div class="p-12">
+            <h2 id="modalTitle" class="text-3xl font-bold tracking-tighter mb-6"></h2>
+            <p id="modalContent" class="text-zinc-600 leading-relaxed"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openNewsModal(title, content, image) {
+        const modal = document.getElementById('newsModal');
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalContent').textContent = content;
+        document.getElementById('modalImage').src = image;
+        
+        modal.classList.remove('hidden');
+        setTimeout(() => modal.classList.add('opacity-100'), 10);
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeNewsModal() {
+        const modal = document.getElementById('newsModal');
+        modal.classList.remove('opacity-100');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }, 500);
+    }
+</script>
+
+<%- include('footer') %>

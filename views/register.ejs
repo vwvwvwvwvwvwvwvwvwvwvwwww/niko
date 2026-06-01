@@ -1,0 +1,59 @@
+<%- include('header') %>
+
+<section class="min-h-screen flex items-center justify-center py-12 px-4">
+    <div class="max-w-md w-full glass p-10 rounded-3xl shadow-2xl">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold tracking-tighter">Присоединяйтесь к нам</h2>
+            <p class="text-zinc-500 text-sm mt-2">Создайте аккаунт для бронирования</p>
+        </div>
+        
+        <% if (error) { %>
+            <div class="bg-red-50 text-red-600 p-4 rounded-xl text-xs font-bold mb-6 flex items-center gap-2">
+                <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                <%= error %>
+            </div>
+        <% } %>
+
+        <form action="/register" method="POST" class="space-y-6">
+            <div>
+                <label class="block text-xs font-bold uppercase text-zinc-500 mb-2">Имя</label>
+                <div class="relative">
+                    <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400"></i>
+                    <input type="text" name="name" required class="w-full pl-12 pr-4 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all" placeholder="Иван Иванов">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold uppercase text-zinc-500 mb-2">Email</label>
+                <div class="relative">
+                    <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400"></i>
+                    <input type="email" name="email" required class="w-full pl-12 pr-4 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all" placeholder="your@email.com">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold uppercase text-zinc-500 mb-2">Пароль</label>
+                <div class="relative">
+                    <i data-lucide="lock" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400"></i>
+                    <input type="password" name="password" required 
+                        pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{6,}).*$"
+                        title="Минимум 6 символов, заглавная, строчная буква, цифра и спецсимвол"
+                        class="w-full pl-12 pr-4 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all" placeholder="••••••••">
+                </div>
+                <p class="text-[10px] text-zinc-400 mt-2">Минимум 6 симв., заглавная, строчная, цифра и спецсимвол</p>
+            </div>
+            <div>
+                <label class="block text-xs font-bold uppercase text-zinc-500 mb-2">Телефон</label>
+                <div class="relative">
+                    <i data-lucide="phone" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400"></i>
+                    <input type="text" name="phone" required class="w-full pl-12 pr-4 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all" placeholder="+7 (999) 000-00-00">
+                </div>
+            </div>
+            <button type="submit" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200">Зарегистрироваться</button>
+        </form>
+        
+        <div class="mt-8 text-center text-sm text-zinc-500">
+            Уже есть аккаунт? <a href="/login" class="text-emerald-600 font-bold hover:underline">Войти</a>
+        </div>
+    </div>
+</section>
+
+<%- include('footer') %>

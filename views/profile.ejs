@@ -1,0 +1,545 @@
+<%- include('header') %>
+
+<section class="py-12 max-w-7xl mx-auto px-4">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <!-- Sidebar -->
+        <div class="lg:col-span-1 space-y-8">
+            <div class="glass p-10 rounded-3xl text-center shadow-xl shadow-zinc-100 border border-zinc-100">
+                <div class="w-24 h-24 bg-emerald-600 rounded-full flex items-center justify-center text-white text-4xl font-bold mx-auto mb-6 shadow-lg shadow-emerald-200">
+                    <%= user.name[0] %>
+                </div>
+                <h2 class="text-2xl font-bold mb-2"><%= user.name %></h2>
+                <p class="text-zinc-500 text-sm mb-6"><%= user.email %></p>
+                
+                <div class="bg-amber-50 border border-amber-100 rounded-2xl p-6 mb-8 relative overflow-hidden group">
+                    <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-200/20 rounded-full blur-2xl group-hover:bg-amber-400/30 transition-all"></div>
+                    <div class="text-[10px] uppercase font-bold text-amber-600 mb-2 leading-none tracking-widest">Прогресс лояльности</div>
+                    <div class="text-4xl font-black text-amber-700 flex items-center justify-center gap-3 mb-4">
+                        <i data-lucide="zap" class="w-8 h-8 fill-amber-400 text-amber-500"></i>
+                        <%= user.points %>
+                    </div>
+                    
+                    <% 
+                        const level = Math.floor(Math.sqrt((user.points || 0) / 100)) + 1;
+                        const nextLevelXp = Math.pow(level, 2) * 100;
+                        const progress = Math.min(100, Math.floor(((user.points || 0) / nextLevelXp) * 100));
+                    %>
+                    
+                    <div class="text-left">
+                        <div class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-2">
+                            <span>Уровень <%= level %></span>
+                            <span>До <%= level + 1 %>: <%= nextLevelXp - (user.points || 0) %> XP</span>
+                        </div>
+                        <div class="w-full h-2 bg-amber-200/30 rounded-full overflow-hidden">
+                            <div class="h-full bg-amber-500 transition-all duration-1000" style="width: <%= progress %>%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Achievements -->
+                <div class="space-y-4 mb-8">
+                    <h3 class="text-xs font-bold uppercase text-zinc-400 tracking-widest text-left px-2">Достижения</h3>
+                    <div class="grid grid-cols-4 gap-2">
+                        <% userAchievements.forEach(ach => { %>
+                            <div class="aspect-square rounded-xl flex items-center justify-center border-2 <%= ach.isUnlocked ? 'bg-emerald-50 border-emerald-100 text-emerald-600 shadow-lg shadow-emerald-100' : 'bg-zinc-50 border-zinc-100 text-zinc-200 cursor-help' %>" title="<%= ach.name %>: <%= ach.description %>">
+                                <i data-lucide="<%= ach.icon %>" class="w-6 h-6"></i>
+                            </div>
+                        <% }) %>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <a href="/notifications-help" class="w-full py-4 bg-zinc-900 text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-zinc-800 transition-all">
+                        <i data-lucide="bell" class="w-4 h-4"></i>
+                        Помощь по уведомлениям
+                    </a>
+                    <a href="/logout" class="w-full py-3 text-zinc-400 font-bold text-sm hover:text-zinc-600 transition-all text-center">Выйти из аккаунта</a>
+                </div>
+            </div>
+            
+            <!-- Promo Codes Section -->
+            <div class="glass p-8 rounded-3xl shadow-xl shadow-zinc-100 border border-zinc-100">
+                <h3 class="font-bold mb-6 flex items-center gap-2">
+                    <i data-lucide="ticket" class="w-5 h-5 text-indigo-600"></i>
+                    Доступные промокоды
+                </h3>
+                <% if (promoCodes && promoCodes.length > 0) { %>
+                    <div class="space-y-4">
+                        <% promoCodes.forEach(promo => { %>
+                            <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 relative overflow-hidden group">
+                                <div class="absolute -right-2 -bottom-2 w-12 h-12 bg-indigo-500/5 rounded-full blur-xl"></div>
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="text-xs font-mono font-bold text-zinc-900 bg-white px-2 py-1 rounded-lg border border-zinc-100"><%= promo.code %></span>
+                                    <span class="text-emerald-500 font-black text-sm">-<%= promo.discount_percent %>%</span>
+                                </div>
+                                <p class="text-[10px] text-zinc-500 mb-2"><%= promo.description || 'Скидка на все услуги' %></p>
+                                <% if (promo.expiry_date) { %>
+                                    <div class="text-[8px] uppercase font-bold text-amber-500">До <%= new Date(promo.expiry_date).toLocaleDateString() %></div>
+                                <% } %>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } else { %>
+                    <p class="text-xs text-zinc-400 text-center py-4">Нет активных промокодов</p>
+                <% } %>
+            </div>
+
+            <div class="glass p-8 rounded-3xl shadow-xl shadow-zinc-100 border border-zinc-100">
+                <h3 class="font-bold mb-6 flex items-center gap-2">
+                    <i data-lucide="settings" class="w-5 h-5 text-emerald-600"></i>
+                    Настройки профиля
+                </h3>
+                <% if (success === 'updated') { %>
+                    <div class="mb-6 p-4 bg-emerald-100 text-emerald-700 rounded-xl text-sm font-bold flex items-center gap-2">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i>
+                        Профиль успешно обновлен!
+                    </div>
+                <% } %>
+                <form action="/profile/edit" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-zinc-400 mb-1">Имя</label>
+                        <input type="text" name="name" value="<%= user.name %>" required class="w-full px-4 py-3 bg-zinc-50 rounded-xl outline-none ring-1 ring-zinc-100 focus:ring-emerald-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-zinc-400 mb-1">Телефон</label>
+                        <input type="text" name="phone" value="<%= user.phone %>" required class="w-full px-4 py-3 bg-zinc-50 rounded-xl outline-none ring-1 ring-zinc-100 focus:ring-emerald-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-zinc-400 mb-1">Email</label>
+                        <input type="email" value="<%= user.email %>" disabled class="w-full px-4 py-3 bg-zinc-50 rounded-xl outline-none ring-1 ring-zinc-100 text-sm text-zinc-400 cursor-not-allowed">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all">Сохранить изменения</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-8">
+            <div class="glass p-10 rounded-3xl shadow-xl shadow-zinc-100 border border-zinc-100">
+                <h2 class="text-3xl font-bold tracking-tighter mb-8 flex items-center gap-3">
+                    <i data-lucide="calendar" class="text-emerald-600"></i>
+                    Мои бронирования
+                </h2>
+                
+                <% if (bookings.length > 0) { %>
+                    <div class="space-y-6">
+                        <% bookings.forEach(booking => { %>
+                            <div class="p-6 bg-white rounded-2xl border border-zinc-100 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                                <div class="flex items-center gap-6">
+                                    <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
+                                        <i data-lucide="activity"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-lg"><%= booking.service_name %></h4>
+                                        <p class="text-zinc-500 text-sm flex items-center gap-2">
+                                            <i data-lucide="calendar-days" class="w-3 h-3"></i>
+                                            <%= new Date(booking.booking_date).toLocaleDateString('ru-RU') %>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
+                                    <span class="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest
+                                        <%= booking.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 
+                                           booking.status === 'pending' ? 'bg-amber-100 text-amber-700' : 
+                                           'bg-red-100 text-red-700' %>">
+                                        <%= booking.status === 'confirmed' ? 'Подтверждено' : 
+                                           booking.status === 'pending' ? 'В ожидании' : 'Отменено' %>
+                                    </span>
+                                    <div class="text-right flex flex-col gap-2 items-end">
+                                        <div class="flex items-center gap-4 mb-2">
+                                            <% if (booking.is_paid) { %>
+                                                <button onclick="showQR('<%= booking.id %>', '<%= booking.service_name %>', '<%= new Date(booking.booking_date).toLocaleDateString() %>', '<%= new Date(booking.booking_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>', '<%= booking.guests %>')" class="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all border border-emerald-100" title="QR Код">
+                                                    <i data-lucide="qr-code" class="w-5 h-5"></i>
+                                                </button>
+                                            <% } else { %>
+                                                <div class="p-2 bg-zinc-50 text-zinc-300 rounded-xl cursor-not-allowed border border-zinc-100" title="Доступно после оплаты">
+                                                    <i data-lucide="qr-code" class="w-5 h-5"></i>
+                                                </div>
+                                            <% } %>
+                                            <div class="text-right">
+                                                <div class="text-lg font-bold"><%= booking.total_price || (booking.service_price * booking.guests) %> ₽</div>
+                                                <div class="text-[10px] <%= booking.is_paid ? 'text-emerald-600' : 'text-zinc-400' %> uppercase font-bold"><%= booking.is_paid ? 'Оплачено' : 'Оплата при заезде' %></div>
+                                            </div>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <% if (booking.assignment_status === 'completed' && !booking.is_reviewed) { %>
+                                                <button onclick="openReviewModal('<%= booking.assignment_id %>', '<%= booking.staff_id %>', '<%= booking.staff_name %>')" class="px-4 py-2 bg-amber-500 text-white rounded-lg text-xs font-bold hover:bg-amber-600 transition-colors flex items-center gap-1">
+                                                    <i data-lucide="star" class="w-3 h-3 fill-current"></i> Оценить сотрудника
+                                                </button>
+                                            <% } else if (booking.is_reviewed) { %>
+                                                <div class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold uppercase flex items-center gap-1">
+                                                    <i data-lucide="check" class="w-3 h-3"></i> Отзыв оставлен
+                                                </div>
+                                            <% } %>
+
+                                            <% if (!booking.is_paid && booking.status !== 'cancelled') { %>
+                                                <a href="/payment/<%= booking.id %>" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors">
+                                                    Оплатить онлайн
+                                                </a>
+                                            <% } %>
+                                            <% if (booking.status === 'pending') { %>
+                                                <form action="/booking/cancel" method="POST">
+                                                    <input type="hidden" name="booking_id" value="<%= booking.id %>">
+                                                    <button type="submit" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" title="Отменить">
+                                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                    </button>
+                                                </form>
+                                            <% } %>
+                                            <form action="/booking/repeat" method="POST">
+                                                <input type="hidden" name="booking_id" value="<%= booking.id %>">
+                                                <button type="submit" class="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors" title="Повторить">
+                                                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-20 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-100">
+                        <i data-lucide="inbox" class="w-12 h-12 text-zinc-300 mx-auto mb-4"></i>
+                        <p class="text-zinc-500">У вас пока нет активных бронирований.</p>
+                        <a href="/booking" class="inline-block mt-6 px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all">Забронировать услугу</a>
+                    </div>
+                <% } %>
+            </div>
+
+            <!-- Event Bookings -->
+            <div class="glass p-10 rounded-3xl shadow-xl shadow-zinc-100 border border-zinc-100 mt-8">
+                <h2 class="text-3xl font-bold tracking-tighter mb-8 flex items-center gap-3">
+                    <i data-lucide="ticket" class="text-indigo-600"></i>
+                    Билеты на мероприятия
+                </h2>
+                
+                <% if (eventBookings && eventBookings.length > 0) { %>
+                    <div class="space-y-6">
+                        <% eventBookings.forEach(eb => { %>
+                            <div class="p-6 bg-white rounded-2xl border border-zinc-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                                <div class="flex items-center gap-6">
+                                    <div class="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 font-bold">
+                                        <i data-lucide="music"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-lg"><%= eb.event_title %></h4>
+                                        <p class="text-zinc-500 text-sm">
+                                            <%= new Date(eb.event_date).toLocaleDateString('ru-RU') %> • <%= eb.tickets %> билета
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-6">
+                                    <% if (eb.is_paid) { %>
+                                        <button onclick="showQR('event-<%= eb.id %>', '<%= eb.event_title %>', '<%= new Date(eb.event_date).toLocaleDateString() %>', 'Мероприятие', '1 Билет')" class="p-4 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-100 transition-all border border-indigo-100" title="QR Билет">
+                                            <i data-lucide="qr-code" class="w-6 h-6"></i>
+                                        </button>
+                                    <% } else { %>
+                                        <a href="/payment/event/<%= eb.id %>" class="p-4 bg-amber-50 text-amber-600 rounded-2xl hover:bg-amber-100 transition-all border border-amber-100" title="Оплатить">
+                                            <i data-lucide="credit-card" class="w-6 h-6"></i>
+                                        </a>
+                                    <% } %>
+                                    <div class="text-right">
+                                        <div class="text-lg font-bold"><%= eb.total_price %> ₽</div>
+                                        <div class="text-[10px] <%= eb.is_paid ? 'text-emerald-600' : 'text-amber-600' %> uppercase font-black tracking-widest flex items-center gap-1 justify-end">
+                                            <% if (eb.is_paid) { %>
+                                                <i data-lucide="check-circle" class="w-2 h-2"></i> Оплачено
+                                            <% } else { %>
+                                                <i data-lucide="clock" class="w-2 h-2"></i> Ждет оплаты
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-12 bg-zinc-50 rounded-3xl border border-zinc-100">
+                        <p class="text-zinc-400 text-sm mb-4">У вас пока нет билетов на мероприятия.</p>
+                        <a href="/events" class="text-indigo-600 font-bold hover:underline">Смотреть афишу</a>
+                    </div>
+                <% } %>
+            </div>
+
+            <!-- Certificates -->
+            <div class="glass p-10 rounded-3xl shadow-xl shadow-zinc-100 border border-zinc-100 mt-8 transition-transform hover:scale-[1.01]">
+                <h2 class="text-3xl font-bold tracking-tighter mb-8 flex items-center gap-3">
+                    <i data-lucide="gift" class="text-emerald-500"></i>
+                    Мои сертификаты
+                </h2>
+                
+                <% if (certificates && certificates.length > 0) { %>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <% certificates.forEach(cert => { %>
+                            <div class="p-8 bg-zinc-900 rounded-[2rem] text-white relative overflow-hidden group shadow-xl">
+                                <div class="absolute top-0 right-0 p-6 text-zinc-800 opacity-20 group-hover:text-emerald-500 transition-colors">
+                                    <i data-lucide="gift" class="w-24 h-24"></i>
+                                </div>
+                                <div class="relative z-10">
+                                    <div class="text-[10px] uppercase font-bold text-emerald-400 mb-1">Сертификат</div>
+                                    <div class="text-2xl font-black mb-4"><%= cert.amount %> ₽</div>
+                                    <div class="text-xs font-mono text-zinc-500 bg-white/5 inline-block px-3 py-1 rounded-lg"><%= cert.code %></div>
+                                    <div class="mt-8 pt-4 border-t border-white/10 flex justify-between items-center">
+                                        <div class="text-[10px] text-zinc-600">От: <%= cert.sender_name %></div>
+                                        <span class="text-[10px] px-2 py-1 bg-emerald-500/10 text-emerald-500 rounded font-bold uppercase"><%= cert.status %></span>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-12 bg-zinc-50 rounded-3xl border border-zinc-100">
+                        <p class="text-zinc-400 text-sm mb-4">У вас пока нет купленных сертификатов.</p>
+                        <a href="/certificates" class="text-emerald-600 font-bold hover:underline">Подробнее о сертификатах</a>
+                    </div>
+                <% } %>
+            </div>
+
+            <!-- Notifications Setup -->
+            <div id="telegram-setup" class="glass p-10 rounded-3xl shadow-2xl border border-zinc-100 mt-12 mb-12">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-12 bg-sky-100 rounded-2xl flex items-center justify-center text-sky-600">
+                        <i data-lucide="bell" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold">Уведомления в Telegram</h2>
+                        <p class="text-zinc-400 text-sm">Получайте подтверждения оплаты и сообщения от поддержки прямо в мессенджер</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div class="space-y-6">
+                        <div class="p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
+                            <h3 class="font-bold mb-4 flex items-center gap-2 text-sm">
+                                <i data-lucide="info" class="w-4 h-4 text-sky-600"></i>
+                                Как настроить?
+                            </h3>
+                            <ol class="text-xs text-zinc-600 space-y-3 list-decimal list-inside">
+                                <li>Перейдите в наш бот: <a href="https://t.me/NikoResortBot" target="_blank" class="text-sky-600 font-bold hover:underline">@NikoResortBot</a></li>
+                                <li>Напишите ему команду <b>/start</b></li>
+                                <li>Затем воспользуйтесь ботом <a href="https://t.me/userinfobot" target="_blank" class="text-zinc-900 font-bold hover:underline">@userinfobot</a> чтобы узнать свой <b>ID</b></li>
+                                <li>Введите полученный ID в поле ниже и нажмите "Сохранить"</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col justify-center">
+                        <label class="text-[10px] uppercase font-black text-zinc-400 tracking-widest mb-2 px-1">Ваш Telegram ID</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="tg-chat-id" value="<%= user.telegram_chat_id || '' %>" placeholder="Например: 12345678" class="flex-1 bg-white border border-zinc-100 rounded-2xl px-6 py-4 text-sm focus:ring-4 ring-sky-500/10 transition-all outline-none">
+                            <button onclick="saveTelegram()" class="px-8 py-4 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200">
+                                Сохранить
+                            </button>
+                        </div>
+                        <p id="tg-status" class="mt-4 text-[10px] font-bold uppercase text-emerald-600 hidden">
+                            <i data-lucide="check" class="w-3 h-3 inline"></i> Настройки сохранены
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                async function saveTelegram() {
+                    const chatId = document.getElementById('tg-chat-id').value.trim();
+                    try {
+                        const res = await fetch('/api/user/telegram', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ chat_id: chatId })
+                        });
+                        if (res.ok) {
+                            const status = document.getElementById('tg-status');
+                            status.classList.remove('hidden');
+                            setTimeout(() => status.classList.add('hidden'), 3000);
+                        }
+                    } catch (e) {
+                        alert('Ошибка сохранения');
+                    }
+                }
+            </script>
+
+            <!-- Action History -->
+            <div class="glass p-10 rounded-3xl shadow-xl shadow-zinc-100 border border-zinc-100 mt-8">
+                <h2 class="text-3xl font-bold tracking-tighter mb-8 flex items-center gap-3">
+                    <i data-lucide="history" class="text-zinc-600"></i>
+                    История действий
+                </h2>
+                
+                <% if (history && history.length > 0) { %>
+                    <div class="overflow-hidden bg-white rounded-2xl border border-zinc-100">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-zinc-50 border-b border-zinc-100">
+                                    <th class="px-6 py-4 text-[10px] uppercase font-bold text-zinc-400">Дата</th>
+                                    <th class="px-6 py-4 text-[10px] uppercase font-bold text-zinc-400">Действие</th>
+                                    <th class="px-6 py-4 text-[10px] uppercase font-bold text-zinc-400">Детали</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-zinc-100">
+                                <% history.forEach(item => { %>
+                                    <% 
+                                        let icon = 'activity';
+                                        let iconColor = 'text-zinc-400';
+                                        if (item.action.includes('Бронирование')) { icon = 'calendar-plus'; iconColor = 'text-emerald-500'; }
+                                        if (item.action.includes('Оплата')) { icon = 'credit-card'; iconColor = 'text-indigo-500'; }
+                                        if (item.action.includes('Отменено')) { icon = 'x-circle'; iconColor = 'text-red-500'; }
+                                        if (item.action.includes('Сертификат')) { icon = 'gift'; iconColor = 'text-amber-500'; }
+                                        if (item.action.includes('Билеты')) { icon = 'ticket'; iconColor = 'text-blue-500'; }
+                                    %>
+                                    <tr class="hover:bg-zinc-50/50 transition-colors">
+                                        <td class="px-6 py-4 text-xs text-zinc-500">
+                                            <%= new Date(item.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-3">
+                                                <i data-lucide="<%= icon %>" class="w-4 h-4 <%= iconColor %>"></i>
+                                                <span class="text-sm font-bold text-zinc-800"><%= item.action %></span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-xs text-zinc-500">
+                                            <%= item.details %>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-12 bg-zinc-50 rounded-3xl border border-zinc-100">
+                        <p class="text-zinc-400 text-sm">История пока пуста. Ваши действия появятся здесь автоматически.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- QR Modal -->
+<div id="qr-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-[3rem] p-12 max-w-sm w-full text-center relative animate-scale-in">
+        <button onclick="hideQR()" class="absolute top-6 right-6 text-zinc-400 hover:text-zinc-900">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+        <h3 class="text-2xl font-bold mb-2" id="qr-title">Билет</h3>
+        <p class="text-zinc-500 text-sm mb-8" id="qr-subtitle">Покажите этот код при входе</p>
+        <div class="bg-zinc-50 p-6 rounded-[2rem] border-2 border-dashed border-zinc-200 inline-block mb-8">
+            <img id="qr-img" src="" alt="QR" class="w-48 h-48">
+        </div>
+        <div class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Digital Ticket ID: #<span id="qr-id"></span></div>
+    </div>
+</div>
+
+<!-- Review Staff Modal -->
+<div id="review-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-[3rem] p-10 max-w-md w-full relative">
+        <h3 class="text-2xl font-bold mb-2">Оцените сотрудника</h3>
+        <p class="text-zinc-500 text-sm mb-6" id="review-staff-name-display"></p>
+        <form onsubmit="submitStaffReview(event)" class="space-y-6">
+            <input type="hidden" id="review-assignment-id">
+            <input type="hidden" id="review-staff-id">
+            
+            <div class="flex justify-center gap-2" id="star-rating">
+                <% for(let i=1; i<=5; i++) { %>
+                    <button type="button" onclick="setRating(<%= i %>)" class="star-btn p-1 text-zinc-200 hover:scale-110 transition-transform">
+                        <i data-lucide="star" class="w-8 h-8 fill-current"></i>
+                    </button>
+                <% } %>
+            </div>
+            <input type="hidden" id="review-rating-val" name="rating" value="5">
+
+            <div>
+                <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-2">Ваш комментарий (мин. 20 слов)</label>
+                <textarea id="review-content" required class="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-4 text-sm focus:ring-2 ring-amber-500 outline-none h-32" placeholder="Расскажите подробнее о качестве обслуживания..."></textarea>
+            </div>
+            
+            <div id="review-error" class="text-red-500 text-[10px] font-bold uppercase hidden"></div>
+
+            <div class="flex gap-4">
+                <button type="button" onclick="closeReviewModal()" class="flex-1 py-4 bg-zinc-100 rounded-2xl font-bold text-sm">Отмена</button>
+                <button type="submit" class="flex-1 py-4 bg-zinc-900 text-white rounded-2xl font-bold text-sm shadow-xl shadow-zinc-200 hover:bg-zinc-800 transition-all">Отправить отзыв</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentRating = 5;
+
+    function setRating(n) {
+        currentRating = n;
+        document.getElementById('review-rating-val').value = n;
+        const stars = document.querySelectorAll('.star-btn');
+        stars.forEach((btn, idx) => {
+            if (idx < n) {
+                btn.classList.add('text-amber-400');
+                btn.classList.remove('text-zinc-200');
+            } else {
+                btn.classList.remove('text-amber-400');
+                btn.classList.add('text-zinc-200');
+            }
+        });
+    }
+
+    function openReviewModal(assignmentId, staffId, staffName) {
+        document.getElementById('review-assignment-id').value = assignmentId;
+        document.getElementById('review-staff-id').value = staffId;
+        document.getElementById('review-staff-name-display').innerText = `Ваш инструктор: ${staffName}`;
+        setRating(5);
+        document.getElementById('review-modal').classList.remove('hidden');
+    }
+
+    function closeReviewModal() {
+        document.getElementById('review-modal').classList.add('hidden');
+    }
+
+    async function submitStaffReview(e) {
+        e.preventDefault();
+        const assignment_id = document.getElementById('review-assignment-id').value;
+        const staff_id = document.getElementById('review-staff-id').value;
+        const content = document.getElementById('review-content').value;
+        const rating = currentRating;
+        const errorEl = document.getElementById('review-error');
+
+        try {
+            const res = await fetch('/api/review/staff', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assignment_id, staff_id, content, rating })
+            });
+
+            if (res.ok) {
+                location.reload();
+            } else {
+                const data = await res.json();
+                errorEl.innerText = data.error || 'Ошибка при отправке отзыва';
+                errorEl.classList.remove('hidden');
+            }
+        } catch (err) {
+            errorEl.innerText = 'Сетевая ошибка';
+            errorEl.classList.remove('hidden');
+        }
+    }
+
+    function showQR(id, title, date, time, guests) {
+        const modal = document.getElementById('qr-modal');
+        const img = document.getElementById('qr-img');
+        const titleEl = document.getElementById('qr-title');
+        const subtitleEl = document.getElementById('qr-subtitle');
+        const idEl = document.getElementById('qr-id');
+        
+        titleEl.innerText = title;
+        subtitleEl.innerText = `${date} в ${time} | ${guests} чел.`;
+        idEl.innerText = id;
+        
+        // Point QR to verification URL
+        const verifyUrl = window.location.origin + '/staff/verify/' + id;
+        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(verifyUrl)}`;
+        
+        modal.classList.remove('hidden');
+    }
+    
+    function hideQR() {
+        document.getElementById('qr-modal').classList.add('hidden');
+    }
+</script>
+
+<%- include('footer') %>

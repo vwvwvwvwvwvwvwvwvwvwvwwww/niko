@@ -1,0 +1,503 @@
+<%- include('header') %>
+
+<!-- Hero Section with Video Background -->
+<section class="relative h-screen flex items-center justify-center overflow-hidden bg-zinc-900">
+    <video autoplay muted loop playsinline poster="<%= optImg('https://images.unsplash.com/photo-1470770841072-f978cf4d019e', 1200) %>" class="absolute inset-0 w-full h-full object-cover">
+        <source src="https://cdn.coverr.co/videos/mp4/coverr-coniferous-forest-1571060945952.mp4" type="video/mp4">
+    </video>
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="relative z-10 text-center text-white px-4">
+        <h1 class="text-6xl md:text-8xl font-bold tracking-tighter mb-6 animate-fade-in">НИКО</h1>
+        <p class="text-xl md:text-2xl font-light mb-8 max-w-2xl mx-auto">Активный отдых в самом сердце природы. Забудьте о городской суете.</p>
+        <div class="flex flex-col md:flex-row gap-4 justify-center">
+            <a href="/booking" class="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-bold transition-all transform hover:scale-105">Забронировать сейчас</a>
+            <a href="/services" class="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 rounded-full font-bold transition-all">Наши услуги</a>
+        </div>
+    </div>
+    <div class="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce">
+        <i data-lucide="chevron-down" class="text-white w-8 h-8"></i>
+    </div>
+</section>
+
+<!-- Parallax Section -->
+<section class="parallax py-32 flex items-center justify-center" style="background-image: url('<%= optImg('https://images.unsplash.com/photo-1470770841072-f978cf4d019e', 1200) %>');">
+    <div class="glass p-12 rounded-3xl max-w-3xl mx-auto text-center text-white">
+        <h2 class="text-4xl font-bold mb-6">Почувствуйте свободу</h2>
+        <p class="text-lg opacity-90">Мы создали идеальное место для тех, кто ценит комфорт и приключения. От экстремальных сплавов до уютных вечеров у костра.</p>
+    </div>
+</section>
+
+<!-- Weather and Virtual Tour -->
+<section class="py-24 max-w-7xl mx-auto px-4">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <!-- Weather Widget -->
+        <div class="lg:col-span-4">
+            <div class="glass p-10 rounded-3xl border border-emerald-100 shadow-xl relative overflow-hidden group">
+                <a href="<%= weather ? weather.yandexUrl : 'https://yandex.ru/pogoda/emelyanovka-matveevka' %>" target="_blank" class="absolute inset-0 z-0"></a>
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <div class="text-[10px] font-bold uppercase text-emerald-600 tracking-widest mb-1">Оренбургская обл.</div>
+                            <div class="text-xl font-bold flex items-center gap-2">
+                                с. Емельяновка
+                                <i data-lucide="external-link" class="w-4 h-4 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                            </div>
+                        </div>
+                        <div class="animate-pulse w-3 h-3 bg-emerald-500 rounded-full"></div>
+                    </div>
+                    <% if (weather) { %>
+                        <div class="flex items-center gap-8 mb-8">
+                            <div class="text-6xl font-bold text-zinc-900"><%= weather.temp > 0 ? '+' : '' %><%= weather.temp %>°C</div>
+                            <div class="p-4 bg-emerald-50 rounded-2xl">
+                                <i data-lucide="<%= weather.conditions === 'rain' ? 'cloud-rain' : (weather.conditions === 'cloudy' ? 'cloud' : 'sun') %>" class="w-10 h-10 text-emerald-600"></i>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-4 bg-zinc-50 rounded-2xl">
+                                <div class="text-[10px] text-zinc-400 font-bold uppercase mb-1">Влажность</div>
+                                <div class="text-sm font-bold text-zinc-700"><%= weather.humidity %>%</div>
+                            </div>
+                            <div class="p-4 bg-zinc-50 rounded-2xl">
+                                <div class="text-[10px] text-zinc-400 font-bold uppercase mb-1">Давление</div>
+                                <div class="text-sm font-bold text-zinc-700"><%= weather.pressure %> мм</div>
+                            </div>
+                        </div>
+                    <% } else { %>
+                        <p class="text-zinc-500">Загрузка погоды...</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Virtual Tour -->
+        <div class="lg:col-span-8">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <h2 class="text-4xl font-bold mb-4">Виртуальный тур</h2>
+                    <p class="text-zinc-500">Осмотритесь на базе отдыха не выходя из дома</p>
+                </div>
+            </div>
+            <div class="relative glass p-2 rounded-[2.5rem] shadow-2xl overflow-hidden aspect-[21/9] group">
+                <div id="panorama" class="w-full h-full rounded-[2rem] overflow-hidden"></div>
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity">
+                    <div class="bg-white/90 backdrop-blur-md px-6 py-3 rounded-full font-bold text-sm shadow-xl flex items-center gap-3">
+                        <i data-lucide="move-3d"></i> Вращайте для обзора 360°
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+    <script>
+        window.addEventListener('load', () => {
+            pannellum.viewer('panorama', {
+                "type": "equirectangular",
+                "panorama": "https://pannellum.org/images/alma.jpg",
+                "autoLoad": true,
+                "title": "База отдыха НИКО",
+                "author": "Команда НИКО"
+            });
+        });
+    </script>
+</section>
+
+<!-- Services Preview -->
+<section class="py-24 max-w-7xl mx-auto px-4">
+    <div class="flex justify-between items-end mb-12">
+        <div>
+            <h2 class="text-3xl font-bold tracking-tight">Популярные услуги</h2>
+            <p class="text-zinc-500">То, что наши гости любят больше всего</p>
+        </div>
+        <a href="/services" class="text-emerald-600 font-bold flex items-center gap-2 hover:underline">
+            Все услуги <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </a>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <% services.forEach(service => { %>
+            <div class="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500">
+                <div class="h-64 overflow-hidden">
+                    <img src="<%= optImg(service.image_url, 400) %>" alt="<%= service.name %>" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                </div>
+                <div class="p-8">
+                    <h3 class="text-xl font-bold mb-2"><%= service.name %></h3>
+                    <p class="text-zinc-500 text-sm mb-6 line-clamp-2"><%= service.description %></p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-lg font-bold text-emerald-600"><%= service.price %> ₽</span>
+                        <a href="/booking?service=<%= service.id %>" class="p-3 bg-zinc-100 rounded-full group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                            <i data-lucide="plus"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        <% }) %>
+    </div>
+</section>
+
+    <!-- Interactive Map Section -->
+    <section class="max-w-7xl mx-auto px-4 py-32 overflow-hidden">
+        <div class="text-center mb-16">
+            <h2 class="text-5xl font-black text-zinc-900 tracking-tighter mb-4">Карта <span class="text-emerald-600 italic">территории</span></h2>
+            <p class="text-zinc-500 max-w-xl mx-auto">Исследуйте нашу базу отдыха. Нажмите на точки интереса, чтобы узнать больше.</p>
+        </div>
+
+        <div class="relative glass rounded-[4rem] border border-zinc-100 p-8 md:p-12 shadow-2xl flex flex-col lg:flex-row gap-12 items-center">
+            <!-- Map SVG -->
+            <div class="w-full lg:w-2/3 bg-zinc-50 rounded-[3rem] border border-zinc-200 aspect-video relative overflow-hidden group">
+                <svg viewBox="0 0 800 450" class="w-full h-full transform transition-transform duration-700 group-hover:scale-105">
+                    <!-- River -->
+                    <path d="M-50,400 C150,380 300,420 500,380 S750,400 850,350" stroke="#bae6fd" stroke-width="60" fill="none" class="opacity-50" />
+                    <!-- Forest Areas -->
+                    <circle cx="100" cy="100" r="80" fill="#dcfce7" />
+                    <circle cx="700" cy="150" r="100" fill="#dcfce7" />
+                    <!-- Map Points -->
+                    <g class="cursor-pointer group/point" onclick="showMapInfo('sauna', 'Баня на дровах', 'Расположена у самого берега для максимального контраста.')">
+                        <circle cx="500" cy="350" r="12" fill="#ef4444" class="animate-ping opacity-20" />
+                        <circle cx="500" cy="350" r="8" fill="#ef4444" />
+                    </g>
+                    <g class="cursor-pointer group/point" onclick="showMapInfo('quad', 'Квадро-трек', 'Экстремальные маршруты через сосновый бор.')">
+                        <circle cx="150" cy="120" r="12" fill="#fbbf24" class="animate-ping opacity-20" />
+                        <circle cx="150" cy="120" r="8" fill="#fbbf24" />
+                    </g>
+                    <g class="cursor-pointer group/point" onclick="showMapInfo('houses', 'Гостевые дома', 'Уютные срубы со всеми удобствами и видом на закат.')">
+                        <circle cx="400" cy="200" r="12" fill="#10b981" class="animate-ping opacity-20" />
+                        <circle cx="400" cy="200" r="8" fill="#10b981" />
+                    </g>
+                    <g class="cursor-pointer group/point" onclick="showMapInfo('river', 'Сплав-база', 'Точка сбора и старта на воду.')">
+                        <circle cx="650" cy="360" r="12" fill="#3b82f6" class="animate-ping opacity-20" />
+                        <circle cx="650" cy="360" r="8" fill="#3b82f6" />
+                    </g>
+                </svg>
+                <div class="absolute bottom-6 left-6 bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-bold text-zinc-500 flex items-center gap-2">
+                    <i data-lucide="mouse-pointer-2" class="w-3 h-3"></i> Нажмите на маркеры
+                </div>
+            </div>
+
+            <!-- Map Side Panel -->
+            <div id="map-info" class="w-full lg:w-1/3 space-y-6">
+                <div class="p-8 bg-zinc-900 rounded-[2.5rem] text-white shadow-2xl animate-fade-in" id="map-card-default">
+                    <h3 class="text-2xl font-bold mb-4">Выберите объект</h3>
+                    <p class="text-zinc-400 text-sm leading-relaxed">Интерактивная навигация поможет вам лучше ориентироваться на территории Нико.</p>
+                </div>
+                <div class="p-8 bg-emerald-600 rounded-[2.5rem] text-white shadow-2xl hidden animate-scale-in relative group" id="map-card-info">
+                    <button onclick="hideMapInfo()" class="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-full transition-colors">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                    <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-6">
+                        <i data-lucide="info" id="map-icon"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2" id="map-title">Баня на дровах</h3>
+                    <p class="text-white/80 text-sm leading-relaxed mb-8" id="map-desc">Настоящая русская баня с выходом к реке.</p>
+                    <a href="/services" class="inline-block px-8 py-3 bg-white text-emerald-600 rounded-xl font-bold text-xs hover:bg-zinc-100 transition-all">Узнать цену</a>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            function showMapInfo(id, title, desc) {
+                const def = document.getElementById('map-card-default');
+                const info = document.getElementById('map-card-info');
+                const titleEl = document.getElementById('map-title');
+                const descEl = document.getElementById('map-desc');
+                
+                def.classList.add('hidden');
+                info.classList.remove('hidden');
+                
+                titleEl.innerText = title;
+                descEl.innerText = desc;
+                if (window.lucide) lucide.createIcons();
+            }
+
+            function hideMapInfo() {
+                const def = document.getElementById('map-card-default');
+                const info = document.getElementById('map-card-info');
+                def.classList.remove('hidden');
+                info.classList.add('hidden');
+            }
+        </script>
+    </section>
+
+    <!-- Live Event Feed -->
+    <section class="py-24 bg-zinc-50 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+                <div>
+                    <span class="inline-block px-4 py-1 bg-red-500 text-white rounded-full text-[10px] font-bold uppercase tracking-widest mb-4 animate-pulse">Live</span>
+                    <h2 class="text-5xl font-black text-zinc-900 tracking-tighter">Сейчас в <span class="text-emerald-600 italic">Niko</span></h2>
+                    <p class="text-zinc-500 mt-4">Живая лента событий и впечатлений наших гостей прямо сейчас.</p>
+                </div>
+                <div class="flex gap-4">
+                    <div class="px-6 py-4 bg-white rounded-2xl border border-zinc-100 shadow-sm text-center">
+                        <div class="text-2xl font-black text-emerald-600"><%= weather.guestsToday %></div>
+                        <div class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Гостей сегодня</div>
+                    </div>
+                    <div class="px-6 py-4 bg-white rounded-2xl border border-zinc-100 shadow-sm text-center">
+                        <div class="text-2xl font-black text-amber-500"><%= weather.temp > 0 ? '+' : '' %><%= weather.temp %>°</div>
+                        <div class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                            <%= weather.conditions === 'rain' ? 'Дождь' : (weather.conditions === 'cloudy' ? 'Облачно' : 'Ясно') %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Live Item 1 -->
+                <div class="glass p-6 rounded-3xl border border-zinc-100 hover:shadow-xl transition-all group">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
+                            <i data-lucide="camera" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold">Новое фото</div>
+                            <div class="text-[10px] text-zinc-400">2 мин. назад</div>
+                        </div>
+                    </div>
+                    <div class="rounded-2xl overflow-hidden aspect-square mb-4">
+                        <img src="<%= optImg('https://images.unsplash.com/photo-1542718610-a1d656d1884c', 400) %>" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                    </div>
+                    <p class="text-xs text-zinc-500">Гости из Отрадного наслаждаются видом на реку.</p>
+                </div>
+
+                <!-- Live Item 2 -->
+                <div class="glass p-6 rounded-3xl border border-zinc-100 hover:shadow-xl transition-all">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+                            <i data-lucide="star" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold">Новый отзыв</div>
+                            <div class="text-[10px] text-zinc-400">14 мин. назад</div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex text-amber-500 gap-1">
+                            <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                            <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                            <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                            <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                            <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                        </div>
+                        <p class="text-sm font-medium italic">"Баня просто огонь! Выход к реке — это то, что нужно было после жаркой парной."</p>
+                        <div class="text-[10px] font-bold text-zinc-400 uppercase">— Алексей С.</div>
+                    </div>
+                </div>
+
+                <!-- Live Item 3 -->
+                <div class="glass p-6 rounded-3xl border border-zinc-100 hover:shadow-xl transition-all group">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
+                            <i data-lucide="zap" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold">Заезд</div>
+                            <div class="text-[10px] text-zinc-400">45 мин. назад</div>
+                        </div>
+                    </div>
+                    <div class="rounded-2xl overflow-hidden aspect-video mb-4">
+                        <img src="<%= optImg('https://images.unsplash.com/photo-1531956461690-939999056637', 400) %>" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                    </div>
+                    <p class="text-xs text-zinc-500">Группа из 6 человек отправилась на экскурсию на квадроциклах.</p>
+                </div>
+
+                <!-- Live Item 4 -->
+                <div class="bg-zinc-900 p-8 rounded-3xl text-white flex flex-col justify-between hover:scale-105 transition-transform duration-500">
+                    <div class="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center mb-6">
+                        <i data-lucide="instagram" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-bold mb-2">Отмечайте нас!</h4>
+                        <p class="text-xs text-zinc-400 leading-relaxed mb-6">Выкладывайте фото с тегом <span class="text-white font-bold">#NikoBase</span> и попадайте в нашу ленту!</p>
+                        <a href="#" class="text-xs font-bold text-emerald-400 hover:underline">Перейти в Instagram →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Reviews Section -->
+    <section id="reviews" class="py-32 bg-white max-w-7xl mx-auto px-4">
+        <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+            <div>
+                <h2 class="text-5xl font-black text-zinc-900 tracking-tighter">Наши <span class="text-emerald-600">гости</span> говорят</h2>
+                <div class="flex items-center gap-2 mt-4 text-emerald-600">
+                    <i data-lucide="star" fill="currentColor"></i>
+                    <i data-lucide="star" fill="currentColor"></i>
+                    <i data-lucide="star" fill="currentColor"></i>
+                    <i data-lucide="star" fill="currentColor"></i>
+                    <i data-lucide="star" fill="currentColor"></i>
+                    <span class="ml-2 font-bold text-zinc-900">4.9 / 5</span>
+                </div>
+            </div>
+            <a href="/register" class="px-10 py-5 bg-zinc-900 text-white rounded-3xl font-bold hover:bg-zinc-800 transition-all">Стать частью Niko</a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
+            <% reviews.forEach(review => { %>
+                <div class="glass p-10 rounded-[3rem] shadow-xl shadow-zinc-100/50 border border-zinc-100 flex flex-col h-full group hover:border-emerald-500 transition-all duration-500">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-14 h-14 bg-zinc-100 rounded-2xl flex items-center justify-center text-zinc-400 font-bold text-xl uppercase">
+                            <%= review.user_name.charAt(0) %>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg"><%= review.user_name %></h4>
+                            <div class="flex gap-1 text-emerald-500">
+                                <% for(let i=0; i<review.rating; i++) { %>
+                                    <i data-lucide="star" class="w-3 h-3" fill="currentColor"></i>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <% if (review.image_url) { %>
+                        <div class="mb-6 rounded-3xl overflow-hidden aspect-video relative group-hover:shadow-2xl transition-all duration-500 border border-zinc-100">
+                            <img src="<%= review.image_url %>" alt="Review Photo" class="w-full h-full object-cover transform scale-100 group-hover:scale-110 transition-transform duration-700" referrerpolicy="no-referrer">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        </div>
+                    <% } %>
+
+                    <p class="text-zinc-500 leading-relaxed italic mb-8 flex-grow">"<%= review.content %>"</p>
+                    <div class="pt-6 border-t border-zinc-50 flex justify-between items-center">
+                        <span class="text-[10px] text-zinc-300 font-bold"><%= new Date(review.created_at).toLocaleDateString('ru-RU') %></span>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+
+        <% if (user) { %>
+            <div class="max-w-2xl mx-auto glass p-12 rounded-[3.5rem] border border-zinc-100 shadow-2xl shadow-zinc-100">
+                <h3 class="text-3xl font-bold mb-8 text-center tracking-tight">Поделитесь <span class="text-emerald-600">впечатлениями</span></h3>
+                <form action="/reviews" method="POST" class="space-y-6">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-zinc-500 mb-3 tracking-widest">Оценка</label>
+                        <select name="rating" class="w-full px-6 py-4 bg-zinc-50 rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all">
+                            <option value="5">⭐⭐⭐⭐⭐ — Великолепно</option>
+                            <option value="4">⭐⭐⭐⭐ — Очень хорошо</option>
+                            <option value="3">⭐⭐⭐ — Нормально</option>
+                            <option value="2">⭐⭐ — Были замечания</option>
+                            <option value="1">⭐ — Плохо</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-zinc-500 mb-3 tracking-widest">Ваш отзыв</label>
+                        <textarea name="content" required rows="4" class="w-full px-6 py-4 bg-zinc-50 rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all resize-none" placeholder="Расскажите, что вам больше всего понравилось..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-zinc-500 mb-3 tracking-widest">Ссылка на фото (URL)</label>
+                        <input type="url" name="image_url" class="w-full px-6 py-4 bg-zinc-50 rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all" placeholder="Вставьте ссылку на фото из соцсетей или облака">
+                    </div>
+                    <button type="submit" class="w-full py-5 bg-emerald-600 text-white rounded-2xl font-bold text-lg hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100">
+                        Опубликовать отзыв
+                    </button>
+                </form>
+            </div>
+        <% } %>
+    </section>
+
+<!-- Circular Slider Section -->
+<section class="py-24 bg-zinc-900 text-white overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 text-center mb-16">
+        <h2 class="text-4xl font-bold mb-4">Наши моменты</h2>
+        <p class="text-zinc-400">Взгляните на жизнь в Нико</p>
+    </div>
+    <div class="swiper circular-swiper max-w-5xl mx-auto">
+        <div class="swiper-wrapper">
+            <div class="swiper-slide flex justify-center">
+                <div class="w-80 h-80 circular-slider border-4 border-emerald-500/30">
+                    <img src="<%= optImg('https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7', 500) %>" loading="lazy" class="w-full h-full object-cover">
+                </div>
+            </div>
+            <div class="swiper-slide flex justify-center">
+                <div class="w-80 h-80 circular-slider border-4 border-emerald-500/30">
+                    <img src="<%= optImg('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05', 500) %>" loading="lazy" class="w-full h-full object-cover">
+                </div>
+            </div>
+            <div class="swiper-slide flex justify-center">
+                <div class="w-80 h-80 circular-slider border-4 border-emerald-500/30">
+                    <img src="<%= optImg('https://images.unsplash.com/photo-1441974231531-c6227db76b6e', 500) %>" loading="lazy" class="w-full h-full object-cover">
+                </div>
+            </div>
+        </div>
+        <div class="swiper-pagination mt-12"></div>
+    </div>
+</section>
+
+<!-- Video Tour Modal -->
+<div id="videoModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm hidden opacity-0 transition-opacity duration-500">
+    <div class="relative w-full max-w-5xl aspect-video mx-4 bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl border border-white/10">
+        <button onclick="closeVideoModal()" class="absolute top-6 right-6 z-10 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all">
+            <i data-lucide="x"></i>
+        </button>
+        <video id="tourVideo" class="w-full h-full object-cover" controls playsinline>
+            <source src="https://cdn.coverr.co/videos/mp4/coverr-river-near-the-mountains-1571060945890.mp4" type="video/mp4">
+        </video>
+        <div class="absolute bottom-10 left-10 text-white pointer-events-none">
+            <h3 class="text-3xl font-bold tracking-tighter mb-2">Добро пожаловать в НИКО</h3>
+            <p class="text-white/60">Ваше путешествие начинается здесь</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openVideoModal() {
+        const modal = document.getElementById('videoModal');
+        modal.classList.remove('hidden');
+        setTimeout(() => modal.classList.add('opacity-100'), 10);
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeVideoModal() {
+        const modal = document.getElementById('videoModal');
+        const video = document.getElementById('tourVideo');
+        modal.classList.remove('opacity-100');
+        video.pause();
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }, 500);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const bgVideo = document.querySelector('video[autoplay]');
+        if (bgVideo) {
+            bgVideo.play().catch(() => {
+                // Autoplay was blocked, we can try to play on first interaction
+                const playOnInteraction = () => {
+                    bgVideo.play();
+                    document.removeEventListener('click', playOnInteraction);
+                    document.removeEventListener('touchstart', playOnInteraction);
+                };
+                document.addEventListener('click', playOnInteraction);
+                document.addEventListener('touchstart', playOnInteraction);
+            });
+        }
+
+        // First visit logic
+        if (!localStorage.getItem('hasVisited')) {
+            setTimeout(openVideoModal, 1500);
+            localStorage.setItem('hasVisited', 'true');
+        }
+        if (document.querySelector('.circular-swiper')) {
+            new Swiper('.circular-swiper', {
+                effect: 'coverflow',
+                grabCursor: true,
+                centeredSlides: true,
+                slidesPerView: 'auto',
+                coverflowEffect: {
+                    rotate: 50,
+                    stretch: 0,
+                    depth: 100,
+                    modifier: 1,
+                    slideShadows: true,
+                },
+                pagination: {
+                    el: '.swiper-pagination',
+                },
+                autoplay: {
+                    delay: 3000,
+                }
+            });
+        }
+    });
+</script>
+
+<%- include('footer') %>

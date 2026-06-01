@@ -1,0 +1,78 @@
+<%- include('header') %>
+
+<section class="py-12 max-w-7xl mx-auto px-4">
+    <div class="text-center mb-16">
+        <h1 class="text-5xl font-bold tracking-tighter mb-4">Контакты</h1>
+        <p class="text-zinc-500">Мы всегда на связи и готовы ответить на ваши вопросы</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div class="space-y-8">
+            <div class="glass p-8 rounded-3xl flex items-start gap-6 shadow-xl shadow-zinc-100 border border-zinc-100">
+                <div class="p-4 bg-emerald-100 text-emerald-600 rounded-2xl">
+                    <i data-lucide="map-pin" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-2">Наш адрес</h3>
+                    <p class="text-zinc-500 leading-relaxed">Лесной проезд, 15, пос. Сосновый бор, Московская область, Россия</p>
+                </div>
+            </div>
+            <div class="glass p-8 rounded-3xl flex items-start gap-6 shadow-xl shadow-zinc-100 border border-zinc-100">
+                <div class="p-4 bg-emerald-100 text-emerald-600 rounded-2xl">
+                    <i data-lucide="phone" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-2">Телефон</h3>
+                    <p class="text-zinc-500 leading-relaxed">+7 (999) 123-45-67<br>+7 (999) 765-43-21</p>
+                </div>
+            </div>
+            <div class="glass p-8 rounded-3xl flex items-start gap-6 shadow-xl shadow-zinc-100 border border-zinc-100">
+                <div class="p-4 bg-emerald-100 text-emerald-600 rounded-2xl">
+                    <i data-lucide="mail" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-2">Email</h3>
+                    <p class="text-zinc-500 leading-relaxed">info@niko-base.ru<br>booking@niko-base.ru</p>
+                </div>
+            </div>
+
+            <!-- Interactive Map -->
+            <div class="glass p-2 rounded-3xl shadow-xl border border-zinc-100 h-80 overflow-hidden">
+                <iframe src="https://yandex.ru/map-widget/v1/?ll=37.617635%2C55.755814&z=10" width="100%" height="100%" frameborder="0" allowfullscreen="true" style="position:relative;"></iframe>
+            </div>
+        </div>
+
+        <div class="glass p-10 rounded-3xl shadow-2xl border border-zinc-100">
+            <h3 class="text-2xl font-bold mb-8">Напишите нам</h3>
+            <% if (typeof success !== 'undefined' && success === 'sent') { %>
+                <div class="mb-8 p-6 bg-emerald-100 text-emerald-700 rounded-2xl text-sm font-bold flex items-center gap-3">
+                    <i data-lucide="check-circle" class="w-6 h-6"></i>
+                    Ваше сообщение успешно отправлено! Мы свяжемся с вами в ближайшее время.
+                </div>
+            <% } %>
+            <form action="/contact" method="POST" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-zinc-500 mb-2">Ваше имя</label>
+                        <input type="text" name="name" required class="w-full px-4 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all" placeholder="Иван">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-zinc-500 mb-2">Email</label>
+                        <input type="email" name="email" required class="w-full px-4 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all" placeholder="your@email.com">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-zinc-500 mb-2">Тема</label>
+                    <input type="text" name="subject" required class="w-full px-4 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all" placeholder="Вопрос по бронированию">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-zinc-500 mb-2">Сообщение</label>
+                    <textarea name="message" required rows="5" class="w-full px-4 py-4 bg-white rounded-2xl outline-none ring-1 ring-zinc-200 focus:ring-emerald-500 transition-all resize-none" placeholder="Ваше сообщение..."></textarea>
+                </div>
+                <button type="submit" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200">Отправить сообщение</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<%- include('footer') %>

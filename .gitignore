@@ -1,0 +1,27 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+Thumbs.db
+
+# Секреты и локальная конфигурация
+.env
+.env.*
+!.env.example
+
+# База данных (создаётся автоматически на сервере)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Загрузки пользователей
+uploads/
+
+# IDE и редакторы
+.idea/
+.vscode/
+*.swp
+.cursor/

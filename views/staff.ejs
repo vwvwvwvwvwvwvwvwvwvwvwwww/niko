@@ -1,0 +1,356 @@
+<%- include('header') %>
+
+<section class="py-20 max-w-7xl mx-auto px-4">
+    <div class="flex justify-between items-end mb-16">
+        <div>
+            <h1 class="text-5xl font-bold mb-4 tracking-tight text-amber-600">Рабочее место</h1>
+            <p class="text-zinc-500">Ваше расписание, задачи и внутренняя связь</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="bg-white p-2 rounded-2xl shadow-sm border border-zinc-100">
+                <select onchange="updateStatus(this.value)" class="bg-transparent text-sm font-bold px-4 py-1 outline-none">
+                    <option value="ready" <%= user.staff_status === 'ready' ? 'selected' : '' %>>В доступе</option>
+                    <option value="busy" <%= user.staff_status === 'busy' ? 'selected' : '' %>>Занят</option>
+                    <option value="off" <%= user.staff_status === 'off' ? 'selected' : '' %>>Вне смены</option>
+                </select>
+            </div>
+            <div class="bg-amber-100 text-amber-700 px-6 py-3 rounded-full text-sm font-bold flex items-center gap-2">
+                <i data-lucide="shield-check"></i> <%= user.role === 'admin' ? 'Администратор' : 'Инструктор' %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Personal Stats & Badges Header -->
+    <div class="mb-12 glass p-8 md:p-12 rounded-[4rem] border border-zinc-100 shadow-2xl relative overflow-hidden group">
+        <div class="absolute top-0 right-0 p-12 text-amber-500/5 group-hover:scale-110 transition-transform">
+            <i data-lucide="award" class="w-64 h-64"></i>
+        </div>
+        <div class="relative z-10 flex flex-col md:flex-row gap-12 items-center">
+            <div class="relative">
+                <div class="w-32 h-32 bg-zinc-900 rounded-[2.5rem] flex items-center justify-center text-white text-4xl font-black shadow-2xl overflow-hidden">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=<%= user.name %>" alt="avatar" class="w-full h-full object-cover">
+                </div>
+                <div class="absolute -bottom-2 -right-2 w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center shadow-lg border-4 border-white">
+                    <i data-lucide="star" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="flex-1 text-center md:text-left">
+                <h2 class="text-3xl font-black text-zinc-900 mb-2"><%= user.name %></h2>
+                <div class="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
+                    <div class="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 border border-emerald-100">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i> Мастер смен
+                    </div>
+                    <% if (stats.totalCompleted > 5) { %>
+                        <div class="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 border border-indigo-100">
+                            <i data-lucide="zap" class="w-4 h-4"></i> Эксперт
+                        </div>
+                    <% } %>
+                    <div class="px-4 py-2 bg-amber-50 text-amber-700 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 border border-amber-100">
+                        <i data-lucide="heart" class="w-4 h-4"></i> Любимец гостей
+                    </div>
+                </div>
+            </div>
+            <div class="text-center md:text-right">
+                <div class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Рейтинг</div>
+                <% 
+                    let ratingVal = staffRating || 5.0;
+                    let ratingColor = 'text-red-500';
+                    if (ratingVal > 4.1) ratingColor = 'text-emerald-600';
+                    else if (ratingVal >= 3.5) ratingColor = 'text-amber-500';
+                %>
+                <div class="text-5xl font-black <%= ratingColor %>"><%= ratingVal.toFixed(1) %></div>
+                <div class="flex gap-1 justify-center md:justify-end mt-2">
+                    <% for(let i=0; i<5; i++) { %>
+                        <i data-lucide="star" class="w-4 h-4 <%= i < Math.round(ratingVal) ? 'text-amber-500 fill-amber-500' : 'text-zinc-200' %>"></i>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <div class="glass p-8 rounded-3xl border border-zinc-100 flex flex-col items-center text-center">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4">
+                <i data-lucide="wallet" class="w-8 h-8"></i>
+            </div>
+            <div class="text-4xl font-black text-zinc-900 mb-1"><%= stats.totalEarned.toLocaleString() %> ₽</div>
+            <div class="text-xs font-bold text-zinc-400 uppercase tracking-widest">Мой доход (20%)</div>
+        </div>
+        <div class="glass p-8 rounded-3xl border border-zinc-100 flex flex-col items-center text-center">
+            <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-4">
+                <i data-lucide="check-circle" class="w-8 h-8"></i>
+            </div>
+            <div class="text-4xl font-black text-zinc-900 mb-1"><%= stats.totalCompleted %></div>
+            <div class="text-xs font-bold text-zinc-400 uppercase tracking-widest">Выполнено задач</div>
+        </div>
+        <div class="glass p-8 rounded-3xl border border-zinc-100 flex flex-col items-center text-center relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-2 h-2 bg-red-500 animate-ping m-4"></div>
+            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-4">
+                <i data-lucide="bell" class="w-8 h-8"></i>
+            </div>
+            <button id="notify-btn" onclick="requestNotifications()" class="px-6 py-2 bg-amber-600 text-white rounded-xl text-[10px] font-bold hover:bg-amber-700 transition-all z-10">
+                Включить уведомления
+            </button>
+            <div class="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-2" id="notify-status">Push-уведомления</div>
+        </div>
+    </div>
+
+    <script>
+        async function updateStatus(s) {
+            await fetch('/staff/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: s })
+            });
+            location.reload();
+        }
+
+        async function updateEquipStatus(id, s) {
+            await fetch('/staff/equipment/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, status: s })
+            });
+            location.reload();
+        }
+
+        async function confirmTask(id, action) {
+            await fetch('/staff/assignment/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assignment_id: id, action })
+            });
+            location.reload();
+        }
+
+        function openEquipNote(id, name) {
+            document.getElementById('equip-id').value = id;
+            document.getElementById('equip-name-display').innerText = name;
+            document.getElementById('equip-modal').classList.remove('hidden');
+        }
+
+        function closeEquipModal() {
+            document.getElementById('equip-modal').classList.add('hidden');
+        }
+
+        async function saveEquipNote(e) {
+            e.preventDefault();
+            const id = document.getElementById('equip-id').value;
+            const note = document.getElementById('equip-note').value;
+            const status = document.querySelector(`select[onchange^="updateEquipStatus('${id}'"]`)?.value || 'active';
+            
+            await fetch('/staff/equipment/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, status, note })
+            });
+            location.reload();
+        }
+
+        function requestNotifications() {
+            if (!("Notification" in window)) {
+                alert("Ваш браузер не поддерживает уведомления");
+                return;
+            }
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    updateStatusText();
+                    new Notification("Уведомления Niko", {
+                        body: "Теперь вы будете получать информацию о новых заявках мгновенно.",
+                    });
+                }
+            });
+        }
+
+        function updateStatusText() {
+            const status = document.getElementById('notify-status');
+            const btn = document.getElementById('notify-btn');
+            if (Notification.permission === 'granted') {
+                status.innerText = "Уведомления активны ✓";
+                status.classList.remove('text-zinc-400');
+                status.classList.add('text-emerald-600');
+                btn.classList.add('hidden');
+            }
+        }
+
+        // Simulate real-time checking for new applications
+        setInterval(async () => {
+            if (Notification.permission === 'granted') {
+                try {
+                    // Check logic here
+                } catch (e) {}
+            }
+        }, 10000);
+        
+        window.onload = updateStatusText;
+    </script>
+
+    <!-- Bulletin Board and Equipment -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+        <!-- Equipment Status -->
+        <div class="glass p-8 md:p-12 rounded-[3.5rem] border border-zinc-100 shadow-2xl overflow-hidden relative group">
+            <h3 class="text-2xl font-bold mb-8 flex items-center gap-3">
+                <i data-lucide="tool" class="text-amber-600"></i>
+                Состояние техники
+            </h3>
+            <div class="space-y-4">
+                <% equipment.forEach(item => { %>
+                    <div class="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 hover:bg-white hover:shadow-md transition-all">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <div class="font-bold text-sm text-zinc-900"><%= item.name %></div>
+                                <div class="text-[10px] text-zinc-400">Проверка: <%= new Date(item.last_check).toLocaleDateString('ru-RU') %></div>
+                                <% if(item.status_note) { %>
+                                    <div class="text-[10px] text-amber-600 mt-1 italic"><%= item.status_note %></div>
+                                <% } %>
+                            </div>
+                            <span class="px-2 py-1 rounded-lg text-[8px] font-bold uppercase transition-colors
+                                <%= item.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 
+                                   item.status === 'repair' ? 'bg-amber-100 text-amber-700' : 
+                                   item.status === 'broken' ? 'bg-red-100 text-red-700' : 'bg-red-200 text-red-800' %>">
+                                <%= item.status === 'active' ? 'Готова' : 
+                                   item.status === 'repair' ? 'В ремонте' : 
+                                   item.status === 'broken' ? 'Поломка' : 'Нуждается в замене' %>
+                            </span>
+                        </div>
+                        <div class="flex gap-2">
+                            <select onchange="updateEquipStatus('<%= item.id %>', this.value)" class="flex-1 px-3 py-2 bg-white border border-zinc-200 rounded-xl text-[10px] font-bold uppercase outline-none cursor-pointer">
+                                <option value="active" <%= item.status === 'active' ? 'selected' : '' %>>Готова</option>
+                                <option value="repair" <%= item.status === 'repair' ? 'selected' : '' %>>В ремонте</option>
+                                <option value="broken" <%= item.status === 'broken' ? 'selected' : '' %>>Поломка</option>
+                                <option value="replace" <%= item.status === 'replace' ? 'selected' : '' %>>Нуждается в замене</option>
+                            </select>
+                            <button onclick="openEquipNote('<%= item.id %>', '<%= item.name %>')" class="p-2 bg-zinc-200 text-zinc-600 rounded-xl hover:bg-zinc-300">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+
+        <!-- Bulletin Board -->
+        <div class="glass p-8 md:p-12 rounded-[3.5rem] border border-zinc-100 shadow-2xl relative overflow-hidden group">
+            <h3 class="text-2xl font-bold mb-8 flex items-center gap-3">
+                <i data-lucide="megaphone" class="text-emerald-600"></i>
+                Доска объявлений
+            </h3>
+            <form action="/staff/note" method="POST" class="mb-8 p-6 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner">
+                <textarea name="content" required placeholder="Важное сообщение для всей смены..." class="w-full bg-transparent border-none outline-none text-sm resize-none mb-4 min-h-[80px]" rows="2"></textarea>
+                <div class="flex justify-between items-center flex-wrap gap-4">
+                    <select name="priority" class="text-[10px] font-bold uppercase bg-white border border-zinc-100 px-3 py-2 rounded-xl shadow-sm outline-none">
+                        <option value="normal">Обычное</option>
+                        <option value="high">Срочно</option>
+                    </select>
+                    <a href="/notifications-help" class="text-[10px] font-bold text-zinc-400 hover:text-emerald-600 flex items-center gap-2 transition-colors">
+                        <i data-lucide="help-circle" class="w-4 h-4"></i> Как настроить Telegram?
+                    </a>
+                    <button type="submit" class="px-6 py-2 bg-zinc-900 text-white rounded-xl text-[10px] font-bold hover:bg-zinc-800 shadow-lg shadow-zinc-200 transition-all ml-auto">Отправить</button>
+                </div>
+            </form>
+            <div class="space-y-6 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                <% notes.forEach(note => { %>
+                    <div class="relative pl-6 border-l-2 <%= note.priority === 'high' ? 'border-red-500' : 'border-zinc-200' %>">
+                        <div class="text-xs font-bold mb-1 text-zinc-900"><%= note.author_name %></div>
+                        <p class="text-xs text-zinc-600 leading-relaxed"><%= note.content %></p>
+                        <div class="text-[10px] text-zinc-400 mt-2"><%= new Date(note.created_at).toLocaleString('ru-RU') %></div>
+                    </div>
+                <% }) %>
+                <% if (notes.length === 0) { %>
+                    <p class="text-center text-zinc-400 text-xs py-10">Пока нет важных объявлений.</p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Calendar Header -->
+    <div class="flex justify-between items-center mb-8 bg-zinc-900 text-white p-8 rounded-[2.5rem] shadow-xl">
+        <div>
+            <h2 class="text-2xl font-black tracking-tight">Календарь нагрузок</h2>
+            <p class="text-zinc-500 text-xs mt-1">Перетаскивайте задачи для планирования недели</p>
+        </div>
+        <div class="flex gap-2">
+            <button class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+            <button class="px-4 py-2 bg-emerald-600 rounded-xl text-xs font-bold">Май 2026</button>
+            <button class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+        </div>
+    </div>
+
+    <!-- Staff Section: My Schedule -->
+    <div class="glass p-10 rounded-[3rem] shadow-2xl border border-zinc-100">
+        <h2 class="text-2xl font-bold mb-8">Мое расписание</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <% assignments.forEach(a => { %>
+                <div class="bg-zinc-50 p-6 rounded-3xl border border-zinc-100 flex flex-col h-full card-gradient">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="p-4 bg-white rounded-2xl shadow-sm border border-zinc-100 text-center">
+                            <div class="text-[10px] font-bold text-zinc-400 uppercase mb-1"><%= new Date(a.booking_date).toLocaleDateString('ru-RU', { month: 'short' }) %></div>
+                            <div class="text-2xl font-black text-zinc-900"><%= new Date(a.booking_date).getDate() %></div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold text-zinc-900"><%= new Date(a.booking_date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) %></div>
+                            <div class="text-[10px] font-bold text-amber-600 uppercase">Назначено</div>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2"><%= a.service_name %></h3>
+                    <div class="flex items-center gap-2 text-zinc-500 text-sm mb-4">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                        <%= a.client_name %> (<%= a.guests %>)
+                    </div>
+                    
+                    <% if (a.status === 'completed') { %>
+                        <div class="mb-4 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-[10px] font-bold uppercase flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-3 h-3"></i> Завершено
+                        </div>
+                    <% } else if (a.confirmation_status === 'pending_confirmation') { %>
+                        <div class="mb-4 bg-amber-50 border border-amber-100 p-4 rounded-2xl">
+                            <div class="text-[10px] font-bold text-amber-600 uppercase mb-2">Требуется подтверждение</div>
+                            <button onclick="confirmTask('<%= a.id %>', 'confirm')" class="w-full py-2 bg-amber-600 text-white rounded-xl text-[10px] font-bold hover:bg-amber-700 shadow-lg shadow-amber-100 mb-2">Принять задачу</button>
+                            <div class="text-[8px] text-amber-500 text-center">Вы были заняты или вне смены при назначении</div>
+                        </div>
+                    <% } else { %>
+                        <button onclick="confirmTask('<%= a.id %>', 'complete')" class="w-full mb-4 py-3 bg-zinc-900 text-white rounded-xl text-[10px] font-bold hover:bg-zinc-800 transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200">
+                            <i data-lucide="check"></i> Завершить задачу
+                        </button>
+                    <% } %>
+
+                    <% if (a.note) { %>
+                        <div class="mt-auto p-4 bg-white rounded-2xl border border-amber-100 text-xs text-amber-800 italic">
+                            <span class="font-bold opacity-50 block mb-1">Заметка:</span>
+                            <%= a.note %>
+                        </div>
+                    <% } %>
+                </div>
+            <% }) %>
+            <% if (assignments.length === 0) { %>
+                <div class="col-span-full py-20 text-center">
+                    <div class="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-100">
+                        <i data-lucide="calendar-x" class="text-zinc-300"></i>
+                    </div>
+                    <p class="text-zinc-400 text-sm">На сегодня задач нет. Отдыхайте!</p>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</section>
+
+<!-- Equipment Note Modal -->
+<div id="equip-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-[2rem] p-10 max-w-sm w-full relative">
+        <h3 class="text-xl font-bold mb-2">Заметка о состоянии</h3>
+        <p class="text-xs text-zinc-400 mb-6" id="equip-name-display"></p>
+        <form onsubmit="saveEquipNote(event)" class="space-y-4">
+            <input type="hidden" id="equip-id">
+            <div>
+                <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Описание проблемы/состояния</label>
+                <textarea id="equip-note" class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 ring-amber-500 outline-none h-32" placeholder="Напишите детали..."></textarea>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="closeEquipModal()" class="flex-1 py-3 bg-zinc-100 rounded-xl font-bold text-sm">Отмена</button>
+                <button type="submit" class="flex-1 py-3 bg-zinc-900 text-white rounded-xl font-bold text-sm">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<%- include('footer') %>
