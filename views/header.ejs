@@ -29,8 +29,39 @@
         .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
         .animate-shake { animation: shake 0.4s ease-in-out; }
-        body.mobile-menu-open { overflow: hidden; }
-        #mobile-menu { -webkit-overflow-scrolling: touch; }
+        body[data-nav-open="true"] { overflow: hidden; position: fixed; width: 100%; }
+        #mobile-menu-backdrop {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.2s ease, visibility 0.2s;
+        }
+        #mobile-menu-panel {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(-0.5rem);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+            -webkit-overflow-scrolling: touch;
+        }
+        body[data-nav-open="true"] #mobile-menu-backdrop {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        body[data-nav-open="true"] #mobile-menu-panel {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+        .burger-line { display: block; height: 2px; width: 22px; background: currentColor; border-radius: 1px; transition: transform 0.2s ease, opacity 0.2s ease; }
+        body[data-nav-open="true"] .burger-line:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        body[data-nav-open="true"] .burger-line:nth-child(2) { opacity: 0; }
+        body[data-nav-open="true"] .burger-line:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+        @media (min-width: 768px) {
+            #mobile-menu-backdrop, #mobile-menu-panel { display: none !important; }
+        }
         @media (max-width: 767px) {
             #weather-widget { display: none; }
             #chat-box { width: min(100vw - 2rem, 20rem); right: 0; }
@@ -269,90 +300,115 @@
                 <% } %>
             </div>
 
-            <!-- Mobile Menu Toggle -->
+            <!-- Mobile Menu Toggle (SVG — не зависит от Lucide) -->
             <button
                 type="button"
                 id="mobile-menu-toggle"
-                class="md:hidden flex items-center justify-center w-11 h-11 -mr-1 rounded-xl text-zinc-700 hover:bg-zinc-100 active:bg-zinc-200 touch-manipulation shrink-0"
+                class="md:hidden relative z-[52] flex flex-col items-center justify-center gap-[5px] w-12 h-12 -mr-2 rounded-xl text-zinc-800 hover:bg-zinc-100 active:bg-zinc-200 touch-manipulation shrink-0"
                 aria-label="Открыть меню"
                 aria-expanded="false"
-                aria-controls="mobile-menu"
+                aria-controls="mobile-menu-panel"
             >
-                <i data-lucide="menu" id="menu-icon-open" class="w-6 h-6"></i>
-                <i data-lucide="x" id="menu-icon-close" class="w-6 h-6 hidden"></i>
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
             </button>
         </div>
+    </nav>
 
-        <!-- Mobile Menu -->
-        <div
-            id="mobile-menu"
-            class="hidden fixed inset-x-0 top-16 bottom-0 bg-white border-t border-zinc-100 shadow-2xl p-6 pb-24 md:hidden z-[60] overflow-y-auto animate-fade-in"
-            aria-hidden="true"
-        >
-            <div class="flex flex-col gap-4 font-bold text-base">
-                <a href="/" class="flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-zinc-50 active:bg-zinc-100"><i data-lucide="home" class="w-5 h-5 shrink-0"></i> Главная</a>
-                <a href="/about" class="flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-zinc-50 active:bg-zinc-100"><i data-lucide="info" class="w-5 h-5 shrink-0"></i> О нас</a>
-                <a href="/events" class="flex items-center gap-3 py-3 px-2 rounded-xl text-emerald-600 hover:bg-emerald-50 active:bg-emerald-100"><i data-lucide="calendar" class="w-5 h-5 shrink-0"></i> Афиша</a>
-                <a href="/services" class="flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-zinc-50 active:bg-zinc-100"><i data-lucide="compass" class="w-5 h-5 shrink-0"></i> Услуги</a>
-                <a href="/gallery" class="flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-zinc-50 active:bg-zinc-100"><i data-lucide="image" class="w-5 h-5 shrink-0"></i> Галерея</a>
-                <a href="/faq" class="flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-zinc-50 active:bg-zinc-100"><i data-lucide="help-circle" class="w-5 h-5 shrink-0"></i> FAQ</a>
-                <a href="/contact" class="flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-zinc-50 active:bg-zinc-100"><i data-lucide="mail" class="w-5 h-5 shrink-0"></i> Контакты</a>
-                <hr class="border-zinc-100">
-                <% if (user) { %>
-                    <a href="/profile" class="flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-zinc-50"><i data-lucide="user" class="w-5 h-5 shrink-0"></i> Профиль</a>
-                    <% if (user.role === 'admin') { %>
-                        <a href="/admin" class="flex items-center gap-3 py-3 px-2 rounded-xl text-rose-600 hover:bg-rose-50"><i data-lucide="layout-dashboard" class="w-5 h-5 shrink-0"></i> Админка</a>
-                    <% } %>
-                    <% if (user.role === 'admin' || user.role === 'instructor') { %>
-                        <a href="/staff" class="flex items-center gap-3 py-3 px-2 rounded-xl text-amber-600 hover:bg-amber-50"><i data-lucide="shield" class="w-5 h-5 shrink-0"></i> Персонал</a>
-                    <% } %>
-                    <a href="/logout" class="flex items-center gap-3 py-3 px-2 rounded-xl text-red-500 hover:bg-red-50"><i data-lucide="log-out" class="w-5 h-5 shrink-0"></i> Выйти</a>
-                <% } else { %>
-                    <a href="/login" class="flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-zinc-50"><i data-lucide="log-in" class="w-5 h-5 shrink-0"></i> Вход</a>
-                    <a href="/register" class="flex items-center gap-3 py-3 px-2 rounded-xl text-emerald-600 bg-emerald-50 hover:bg-emerald-100"><i data-lucide="user-plus" class="w-5 h-5 shrink-0"></i> Регистрация</a>
+    <!-- Меню вне nav: backdrop-filter на nav ломает position:fixed внутри него -->
+    <div id="mobile-menu-backdrop" class="fixed inset-0 z-[90] bg-black/40 md:hidden" aria-hidden="true"></div>
+    <div
+        id="mobile-menu-panel"
+        class="fixed left-0 right-0 top-16 bottom-0 z-[91] bg-white overflow-y-auto md:hidden"
+        aria-hidden="true"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Навигация"
+    >
+        <nav class="p-4 pb-28 flex flex-col gap-1 font-semibold text-base max-w-lg mx-auto">
+            <a href="/" class="mobile-nav-link flex items-center gap-3 py-3.5 px-3 rounded-2xl text-zinc-800 active:bg-zinc-100">Главная</a>
+            <a href="/about" class="mobile-nav-link flex items-center gap-3 py-3.5 px-3 rounded-2xl text-zinc-800 active:bg-zinc-100">О нас</a>
+            <a href="/events" class="mobile-nav-link flex items-center gap-3 py-3.5 px-3 rounded-2xl text-emerald-700 bg-emerald-50 active:bg-emerald-100">Афиша</a>
+            <a href="/services" class="mobile-nav-link flex items-center gap-3 py-3.5 px-3 rounded-2xl text-zinc-800 active:bg-zinc-100">Услуги</a>
+            <a href="/gallery" class="mobile-nav-link flex items-center gap-3 py-3.5 px-3 rounded-2xl text-zinc-800 active:bg-zinc-100">Галерея</a>
+            <a href="/faq" class="mobile-nav-link flex items-center gap-3 py-3.5 px-3 rounded-2xl text-zinc-800 active:bg-zinc-100">FAQ</a>
+            <a href="/contact" class="mobile-nav-link flex items-center gap-3 py-3.5 px-3 rounded-2xl text-zinc-800 active:bg-zinc-100">Контакты</a>
+            <hr class="my-2 border-zinc-100">
+            <% if (user) { %>
+                <a href="/profile" class="mobile-nav-link flex items-center gap-3 py-3.5 px-3 rounded-2xl text-emerald-700 active:bg-emerald-50">Профиль · <%= user.name %></a>
+                <% if (user.role === 'admin') { %>
+                    <a href="/admin" class="mobile-nav-link flex items-center gap-3 py-3.5 px-3 rounded-2xl text-rose-600 active:bg-rose-50">Админка</a>
                 <% } %>
-            </div>
-        </div>
+                <% if (user.role === 'admin' || user.role === 'instructor') { %>
+                    <a href="/staff" class="mobile-nav-link flex items-center gap-3 py-3.5 px-3 rounded-2xl text-amber-700 active:bg-amber-50">Персонал</a>
+                <% } %>
+                <a href="/logout" class="mobile-nav-link flex items-center gap-3 py-3.5 px-3 rounded-2xl text-red-600 active:bg-red-50">Выйти</a>
+            <% } else { %>
+                <a href="/login" class="mobile-nav-link flex items-center gap-3 py-3.5 px-3 rounded-2xl text-zinc-800 active:bg-zinc-100">Вход</a>
+                <a href="/register" class="mobile-nav-link flex items-center justify-center py-3.5 px-3 rounded-2xl bg-emerald-600 text-white active:bg-emerald-700">Регистрация</a>
+            <% } %>
+        </nav>
+    </div>
 
-        <div id="mobile-menu-backdrop" class="hidden fixed inset-0 top-16 bg-black/30 z-[55] md:hidden" aria-hidden="true"></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var btn = document.getElementById('mobile-menu-toggle');
+            var panel = document.getElementById('mobile-menu-panel');
+            var backdrop = document.getElementById('mobile-menu-backdrop');
+            if (!btn || !panel) return;
 
-        <script>
-            (function initMobileMenu() {
-                const btn = document.getElementById('mobile-menu-toggle');
-                const menu = document.getElementById('mobile-menu');
-                const backdrop = document.getElementById('mobile-menu-backdrop');
-                const iconOpen = document.getElementById('menu-icon-open');
-                const iconClose = document.getElementById('menu-icon-close');
-                if (!btn || !menu) return;
+            var scrollY = 0;
 
-                function setOpen(open) {
-                    menu.classList.toggle('hidden', !open);
-                    backdrop?.classList.toggle('hidden', !open);
-                    iconOpen?.classList.toggle('hidden', open);
-                    iconClose?.classList.toggle('hidden', !open);
-                    document.body.classList.toggle('mobile-menu-open', open);
-                    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-                    btn.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
-                    menu.setAttribute('aria-hidden', open ? 'false' : 'true');
-                    if (window.lucide) lucide.createIcons();
+            function isOpen() {
+                return document.body.getAttribute('data-nav-open') === 'true';
+            }
+
+            function setOpen(open) {
+                if (open === isOpen()) return;
+
+                if (open) {
+                    scrollY = window.scrollY;
+                    document.body.setAttribute('data-nav-open', 'true');
+                    document.body.style.top = '-' + scrollY + 'px';
+                } else {
+                    document.body.removeAttribute('data-nav-open');
+                    document.body.style.top = '';
+                    window.scrollTo(0, scrollY);
                 }
 
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setOpen(menu.classList.contains('hidden'));
-                });
+                btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                btn.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
+                panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+                if (backdrop) backdrop.setAttribute('aria-hidden', open ? 'false' : 'true');
+            }
 
-                backdrop?.addEventListener('click', () => setOpen(false));
-                menu.querySelectorAll('a').forEach((link) => {
-                    link.addEventListener('click', () => setOpen(false));
-                });
-                window.addEventListener('resize', () => {
-                    if (window.innerWidth >= 768) setOpen(false);
-                });
-            })();
-        </script>
-    </nav>
+            function toggleMenu() {
+                setOpen(!isOpen());
+            }
+
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                toggleMenu();
+            });
+
+            if (backdrop) {
+                backdrop.addEventListener('click', function () { setOpen(false); });
+            }
+
+            panel.querySelectorAll('.mobile-nav-link').forEach(function (link) {
+                link.addEventListener('click', function () { setOpen(false); });
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && isOpen()) setOpen(false);
+            });
+
+            window.addEventListener('resize', function () {
+                if (window.innerWidth >= 768 && isOpen()) setOpen(false);
+            });
+        });
+    </script>
 
     <!-- Notifications Container -->
     <div id="toast-container" class="fixed top-4 right-4 z-[100] flex flex-col gap-3 pointer-events-none"></div>
