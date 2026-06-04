@@ -1,12 +1,12 @@
 <%- include('header') %>
 
-<section class="py-20 max-w-7xl mx-auto px-4">
-    <div class="flex justify-between items-end mb-16">
+<section class="page-dashboard py-8 sm:py-20 max-w-7xl mx-auto px-4">
+    <div class="page-header flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-10 sm:mb-16">
         <div>
-            <h1 class="text-5xl font-bold mb-4 tracking-tight text-amber-600">Рабочее место</h1>
-            <p class="text-zinc-500">Ваше расписание, задачи и внутренняя связь</p>
+            <h1 class="text-3xl sm:text-5xl font-bold mb-2 sm:mb-4 tracking-tight text-amber-600">Рабочее место</h1>
+            <p class="text-zinc-500 text-sm sm:text-base">Ваше расписание, задачи и внутренняя связь</p>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="flex flex-wrap items-center gap-3 sm:gap-4 w-full sm:w-auto">
             <div class="bg-white p-2 rounded-2xl shadow-sm border border-zinc-100">
                 <select onchange="updateStatus(this.value)" class="bg-transparent text-sm font-bold px-4 py-1 outline-none">
                     <option value="ready" <%= user.staff_status === 'ready' ? 'selected' : '' %>>В доступе</option>
@@ -21,11 +21,11 @@
     </div>
 
     <!-- Personal Stats & Badges Header -->
-    <div class="mb-12 glass p-8 md:p-12 rounded-[4rem] border border-zinc-100 shadow-2xl relative overflow-hidden group">
+    <div class="mb-8 sm:mb-12 glass p-5 sm:p-8 md:p-12 rounded-huge rounded-[1.5rem] sm:rounded-[4rem] border border-zinc-100 shadow-2xl relative overflow-hidden group">
         <div class="absolute top-0 right-0 p-12 text-amber-500/5 group-hover:scale-110 transition-transform">
             <i data-lucide="award" class="w-64 h-64"></i>
         </div>
-        <div class="relative z-10 flex flex-col md:flex-row gap-12 items-center">
+        <div class="relative z-10 flex flex-col md:flex-row gap-6 sm:gap-12 items-center">
             <div class="relative">
                 <div class="w-32 h-32 bg-zinc-900 rounded-[2.5rem] flex items-center justify-center text-white text-4xl font-black shadow-2xl overflow-hidden">
                     <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=<%= user.name %>" alt="avatar" class="w-full h-full object-cover">
@@ -53,12 +53,12 @@
             <div class="text-center md:text-right">
                 <div class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Рейтинг</div>
                 <% 
-                    let ratingVal = staffRating || 5.0;
+                    let ratingVal = Number(staffRating) || 5.0;
                     let ratingColor = 'text-red-500';
                     if (ratingVal > 4.1) ratingColor = 'text-emerald-600';
                     else if (ratingVal >= 3.5) ratingColor = 'text-amber-500';
                 %>
-                <div class="text-5xl font-black <%= ratingColor %>"><%= ratingVal.toFixed(1) %></div>
+                <div class="text-4xl sm:text-5xl font-black <%= ratingColor %>"><%= ratingVal.toFixed(1) %></div>
                 <div class="flex gap-1 justify-center md:justify-end mt-2">
                     <% for(let i=0; i<5; i++) { %>
                         <i data-lucide="star" class="w-4 h-4 <%= i < Math.round(ratingVal) ? 'text-amber-500 fill-amber-500' : 'text-zinc-200' %>"></i>
@@ -188,7 +188,7 @@
     <!-- Bulletin Board and Equipment -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
         <!-- Equipment Status -->
-        <div class="glass p-8 md:p-12 rounded-[3.5rem] border border-zinc-100 shadow-2xl overflow-hidden relative group">
+        <div class="glass p-5 sm:p-8 md:p-12 rounded-huge rounded-[1.5rem] sm:rounded-[3.5rem] border border-zinc-100 shadow-2xl overflow-hidden relative group">
             <h3 class="text-2xl font-bold mb-8 flex items-center gap-3">
                 <i data-lucide="tool" class="text-amber-600"></i>
                 Состояние техники
@@ -230,7 +230,7 @@
         </div>
 
         <!-- Bulletin Board -->
-        <div class="glass p-8 md:p-12 rounded-[3.5rem] border border-zinc-100 shadow-2xl relative overflow-hidden group">
+        <div class="glass p-5 sm:p-8 md:p-12 rounded-huge rounded-[1.5rem] sm:rounded-[3.5rem] border border-zinc-100 shadow-2xl relative overflow-hidden group">
             <h3 class="text-2xl font-bold mb-8 flex items-center gap-3">
                 <i data-lucide="megaphone" class="text-emerald-600"></i>
                 Доска объявлений
@@ -264,7 +264,7 @@
     </div>
 
     <!-- Interactive Calendar Header -->
-    <div class="flex justify-between items-center mb-8 bg-zinc-900 text-white p-8 rounded-[2.5rem] shadow-xl">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 bg-zinc-900 text-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] shadow-xl">
         <div>
             <h2 class="text-2xl font-black tracking-tight">Календарь нагрузок</h2>
             <p class="text-zinc-500 text-xs mt-1">Перетаскивайте задачи для планирования недели</p>

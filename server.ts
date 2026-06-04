@@ -328,6 +328,16 @@ async function startServer() {
   try {
     db.exec("ALTER TABLE users ADD COLUMN telegram_chat_id TEXT");
   } catch (e) { /* already exists */ }
+  try {
+    db.exec('ALTER TABLE users ADD COLUMN rating_override REAL');
+  } catch (e) { /* already exists */ }
+
+  const getStaffRating = (staffId: number) => {
+    const user = db.prepare('SELECT rating_override FROM users WHERE id = ?').get(staffId) as { rating_override: number | null } | undefined;
+    if (user?.rating_override != null) return user.rating_override;
+    const avg = db.prepare('SELECT AVG(rating) as avg_rating FROM staff_reviews WHERE staff_id = ?').get(staffId) as { avg_rating: number | null } | undefined;
+    return avg?.avg_rating ?? 5.0;
+  };
 
   // Seed services if empty
   const serviceCount = db.prepare('SELECT COUNT(*) as count FROM services').get() as { count: number };
@@ -1023,8 +1033,7 @@ async function startServer() {
       ORDER BY n.created_at DESC LIMIT 10
     `).all();
 
-    const staffRatingData = db.prepare('SELECT AVG(rating) as avg_rating FROM staff_reviews WHERE staff_id = ?').get(req.session.userId) as any;
-    const staffRating = staffRatingData ? staffRatingData.avg_rating : null;
+    const staffRating = getStaffRating(Number(req.session.userId));
 
     const weather = getWeatherData();
     res.render('staff', { 
@@ -1382,13 +1391,16 @@ async function startServer() {
       JOIN users u ON q.user_id = u.id
       ORDER BY q.created_at DESC
     `).all();
-    const instructors = db.prepare(`
+    const instructorsRaw = db.prepare(`
       SELECT u.*, 
-             (SELECT COUNT(*) FROM assignments WHERE instructor_id = u.id) as total_assignments,
-             (SELECT AVG(rating) FROM staff_reviews WHERE staff_id = u.id) as average_rating
+             (SELECT COUNT(*) FROM assignments WHERE instructor_id = u.id) as total_assignments
       FROM users u 
       WHERE u.role = 'instructor'
-    `).all();
+    `).all() as any[];
+    const instructors = instructorsRaw.map((u) => ({
+      ...u,
+      average_rating: getStaffRating(u.id),
+    }));
     const equipment = db.prepare('SELECT * FROM equipment').all();
     const unassignedBookings = db.prepare(`
       SELECT b.*, s.name as service_name, u.name as user_name
@@ -1405,9 +1417,23 @@ async function startServer() {
   });
 
   app.post('/admin/service/edit', requireAuth, requireAdmin, (req: any, res: any) => {
-    const { id, name, description, price, category } = req.body;
-    db.prepare('UPDATE services SET name = ?, description = ?, price = ?, category = ? WHERE id = ?').run(
-      name, description, price, category, id
+    const { id, name, description, price, weekend_price, category, image_url, capacity } = req.body;
+    if (!id || !name) {
+      return res.status(400).json({ success: false, error: 'Не указаны id или название' });
+    }
+    const priceNum = Number(price);
+    const weekendNum = weekend_price ? Number(weekend_price) : priceNum;
+    db.prepare(
+      'UPDATE services SET name = ?, description = ?, price = ?, weekend_price = ?, category = ?, image_url = ?, capacity = ? WHERE id = ?'
+    ).run(
+      String(name).trim(),
+      String(description || '').trim(),
+      priceNum,
+      weekendNum,
+      String(category || 'active'),
+      image_url ? String(image_url).trim() : null,
+      capacity ? Number(capacity) : 10,
+      Number(id)
     );
     res.json({ success: true });
   });
@@ -1419,10 +1445,33 @@ async function startServer() {
   });
 
   app.post('/admin/service/add', requireAuth, requireAdmin, (req: any, res: any) => {
-    const { name, description, price, category, image_url } = req.body;
-    db.prepare('INSERT INTO services (name, description, price, category, image_url) VALUES (?, ?, ?, ?, ?)').run(
-      name, description, price, category, image_url || 'https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&q=80'
+    const { name, description, price, weekend_price, category, image_url, capacity } = req.body;
+    const priceNum = Number(price);
+    db.prepare(
+      'INSERT INTO services (name, description, price, weekend_price, category, image_url, capacity) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+      String(name).trim(),
+      String(description || '').trim(),
+      priceNum,
+      weekend_price ? Number(weekend_price) : priceNum,
+      String(category || 'active'),
+      image_url || 'https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&q=80',
+      capacity ? Number(capacity) : 10
     );
+    res.json({ success: true });
+  });
+
+  app.post('/admin/staff/rating', requireAuth, requireAdmin, (req: any, res: any) => {
+    const { staff_id, rating } = req.body;
+    const ratingNum = Number(rating);
+    if (!staff_id || Number.isNaN(ratingNum) || ratingNum < 0 || ratingNum > 5) {
+      return res.status(400).json({ success: false, error: 'Рейтинг от 0 до 5' });
+    }
+    const staff = db.prepare("SELECT id FROM users WHERE id = ? AND role = 'instructor'").get(staff_id);
+    if (!staff) {
+      return res.status(404).json({ success: false, error: 'Сотрудник не найден' });
+    }
+    db.prepare('UPDATE users SET rating_override = ? WHERE id = ?').run(ratingNum, staff_id);
     res.json({ success: true });
   });
 
