@@ -92,7 +92,7 @@ async function startServer() {
       phone TEXT,
       role TEXT DEFAULT 'user',
       points INTEGER DEFAULT 0,
-      staff_status TEXT DEFAULT 'off', -- 'off', 'ready', 'busy'
+      staff_status TEXT DEFAULT 'off' -- 'off', 'ready', 'busy'
     );
 
     CREATE TABLE IF NOT EXISTS services (
