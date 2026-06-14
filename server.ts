@@ -10,29 +10,6 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 const ROOT_DIR = process.cwd();
 
-// Notification service helpers
-async function sendTelegramNotification(message: string, chatId?: string) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
-  const targetChatId = chatId || adminChatId;
-  
-  if (!token || !targetChatId) return;
-  
-  try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        chat_id: targetChatId, 
-        text: message,
-        parse_mode: 'HTML'
-      })
-    });
-  } catch (err) {
-    console.error('Telegram Error:', err);
-  }
-}
-
 async function sendSMSNotification(phone: string, message: string) {
   const apiKey = process.env.SMS_API_KEY;
   if (!apiKey) return;
@@ -116,7 +93,6 @@ async function startServer() {
       role TEXT DEFAULT 'user',
       points INTEGER DEFAULT 0,
       staff_status TEXT DEFAULT 'off', -- 'off', 'ready', 'busy'
-      telegram_chat_id TEXT
     );
 
     CREATE TABLE IF NOT EXISTS services (
@@ -318,15 +294,12 @@ async function startServer() {
     }
   };
 
-  // Add status, operator, and telegram columns if not exists
+  // Add status and operator columns if not exists
   try {
     db.exec("ALTER TABLE users ADD COLUMN staff_status TEXT DEFAULT 'ready'");
   } catch (e) { /* already exists */ }
   try {
     db.exec("ALTER TABLE users ADD COLUMN needs_operator INTEGER DEFAULT 0");
-  } catch (e) { /* already exists */ }
-  try {
-    db.exec("ALTER TABLE users ADD COLUMN telegram_chat_id TEXT");
   } catch (e) { /* already exists */ }
   try {
     db.exec('ALTER TABLE users ADD COLUMN rating_override REAL');
@@ -591,19 +564,6 @@ async function startServer() {
     res.json(messages);
   });
 
-  const notifyUser = (userId: number, message: string) => {
-    const user = db.prepare('SELECT telegram_chat_id FROM users WHERE id = ?').get(userId) as any;
-    if (user && user.telegram_chat_id) {
-      sendTelegramNotification(message, user.telegram_chat_id);
-    }
-  };
-
-  app.post('/api/user/telegram', requireAuth, (req: any, res) => {
-    const { chat_id } = req.body;
-    db.prepare('UPDATE users SET telegram_chat_id = ? WHERE id = ?').run(chat_id, req.session.userId);
-    res.json({ success: true });
-  });
-
   app.get('/api/admin/chats', requireAuth, requireAdmin, (req, res) => {
     const chats = db.prepare(`
       SELECT u.id, u.name, u.email, u.needs_operator,
@@ -624,10 +584,6 @@ async function startServer() {
   app.post('/api/admin/chat/send', requireAuth, requireAdmin, (req: any, res) => {
     const { user_id, content } = req.body;
     db.prepare('INSERT INTO messages (user_id, sender_role, content) VALUES (?, ?, ?)').run(user_id, 'admin', content);
-    
-    // Notify User
-    notifyUser(user_id, `💬 <b>Новое сообщение от администратора Нико:</b>\n\n"${content}"\n\nОтветить можно на сайте в разделе поддержки.`);
-
     res.json({ success: true });
   });
 
@@ -739,10 +695,8 @@ async function startServer() {
       }
     }
 
-    // Notification placeholder (Telegram/SMS)
+    // SMS-уведомление клиенту (если настроен SMS_API_KEY)
     const userProfile = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId) as any;
-    const msg = `🚀 Новое бронирование!\nКлиент: ${userProfile.name}\nУслуга: ${service.name}\nДата: ${date}\nИтого: ${finalPrice} ₽\nПожелания: ${wishes || '-'}`;
-    sendTelegramNotification(msg);
     sendSMSNotification(userProfile.phone, `Ваша бронь на ${service.name} (${date}) принята! Ждем вас.`);
     
     res.redirect(`/profile?success=booked&booking_id=${result.lastInsertRowid}`);
@@ -823,11 +777,6 @@ async function startServer() {
     }
 
     db.prepare("UPDATE bookings SET is_paid = 1, status = 'confirmed', total_price = ? WHERE id = ?").run(currentPrice, booking_id);
-    
-    // Notify Admin
-    sendTelegramNotification(`✅ <b>Оплата бронирования</b>\nID: ${booking_id}\nСумма: ${currentPrice} руб.\nКлиент ID: ${req.session.userId}`);
-    // Notify User
-    notifyUser(req.session.userId, `✅ <b>Ваше бронирование #${booking_id} оплачено!</b>\nСумма: ${currentPrice} руб.\nЖдем вас в НИКО!`);
     
     const serviceName = db.prepare('SELECT s.name FROM services s JOIN bookings b ON b.service_id = s.id WHERE b.id = ?').get(booking_id) as any;
     logActivity(req.session.userId, 'Оплата произведена', `Бронирование #${booking_id} (${serviceName?.name || 'услуга'}), Сумма: ${currentPrice} ₽`);
@@ -990,9 +939,6 @@ async function startServer() {
     db.prepare('UPDATE event_bookings SET is_paid = 1, total_price = ? WHERE id = ?').run(currentPrice, booking_id);
 
     // Notify Admin
-    sendTelegramNotification(`🎟 <b>Куплены билеты на мероприятие</b>\nID брони: ${booking_id}\nСумма: ${currentPrice} руб.\nКлиент ID: ${req.session.userId}`);
-    // Notify User
-    notifyUser(req.session.userId, `🎟 <b>Вы успешно купили билеты!</b>\nНомер брони: ${booking_id}\nСумма: ${currentPrice} руб.\nДетали в вашем профиле.`);
 
     res.redirect('/profile?success=event_paid');
   });
@@ -1351,7 +1297,6 @@ async function startServer() {
   app.post('/faq/ask', requireAuth, (req: any, res) => {
     const { question } = req.body;
     db.prepare('INSERT INTO questions (user_id, question) VALUES (?, ?)').run(req.session.userId, question);
-    sendTelegramNotification(`❓ Новый вопрос от пользователя ${req.session.userId}: ${question}`);
     res.redirect('/faq?success=asked');
   });
 

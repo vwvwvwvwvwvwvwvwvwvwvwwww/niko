@@ -1,6 +1,6 @@
 # База отдыха «Нико» — веб-сайт
 
-Полнофункциональный сайт базы активного отдыха: бронирование, личный кабинет, админ-панель, отзывы, Telegram-уведомления.
+Полнофункциональный сайт базы активного отдыха: бронирование, личный кабинет, админ-панель, отзывы.
 
 **Стек:** Node.js, Express, EJS, SQLite (better-sqlite3), Tailwind CSS 4, Vite.
 
@@ -136,8 +136,6 @@ docker run -d \
 | `SESSION_SECRET` | **Обязательно** в production |
 | `DATABASE_PATH` | Путь к SQLite (опционально) |
 | `GEMINI_API_KEY` | AI-функции (опционально) |
-| `TELEGRAM_BOT_TOKEN` | Уведомления в Telegram |
-| `TELEGRAM_ADMIN_CHAT_ID` | Chat ID администратора |
 
 Полный список: [`.env.example`](.env.example)
 

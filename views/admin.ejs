@@ -130,15 +130,6 @@
                                 <td class="py-4">
                                     <div class="font-bold text-sm"><%= user.name %></div>
                                     <div class="text-[10px] text-zinc-400"><%= user.email %></div>
-                                    <% if (user.telegram_chat_id) { %>
-                                        <div class="text-[8px] text-emerald-600 font-bold uppercase flex items-center gap-1 mt-1">
-                                            <i data-lucide="bell" class="w-2 h-2"></i> TG: <%= user.telegram_chat_id %>
-                                        </div>
-                                    <% } else { %>
-                                        <div class="text-[8px] text-zinc-300 font-bold uppercase flex items-center gap-1 mt-1">
-                                            <i data-lucide="bell-off" class="w-2 h-2"></i> TG не привязан
-                                        </div>
-                                    <% } %>
                                     <div class="mt-2">
                                         <form action="/admin/user/role" method="POST" class="inline-flex gap-1 items-center">
                                             <input type="hidden" name="user_id" value="<%= user.id %>">
@@ -411,7 +402,7 @@
         const SERVICES_BY_ID = <%- JSON.stringify(Object.fromEntries(services.map(s => [s.id, s]))) %>;
 
         function editService(id) {
-            const service = SERVICES_BY_ID[id];
+            const service = SERVICES_BY_ID[id] || SERVICES_BY_ID[String(id)];
             if (!service) {
                 alert('Услуга не найдена');
                 return;
@@ -441,17 +432,29 @@
             alert(result.error || 'Не удалось сохранить. Проверьте данные и попробуйте снова.');
         }
 
-        document.getElementById('edit-service-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            await saveServiceForm('/admin/service/edit', Object.fromEntries(formData.entries()));
-        });
+        function bindServiceForms() {
+            const editForm = document.getElementById('edit-service-form');
+            const addForm = document.getElementById('add-service-form');
+            if (!editForm || !addForm) return;
 
-        document.getElementById('add-service-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            await saveServiceForm('/admin/service/add', Object.fromEntries(formData.entries()));
-        });
+            editForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                await saveServiceForm('/admin/service/edit', Object.fromEntries(formData.entries()));
+            });
+
+            addForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                await saveServiceForm('/admin/service/add', Object.fromEntries(formData.entries()));
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bindServiceForms);
+        } else {
+            bindServiceForms();
+        }
 
         async function setStaffRating(e, staffId) {
             e.preventDefault();
@@ -625,52 +628,6 @@
         </div>
     </div>
 
-    <!-- Telegram Setup Instructions -->
-    <div id="telegram-admin-setup" class="glass p-10 rounded-3xl shadow-2xl border border-zinc-100 mb-12 bg-white">
-        <h2 class="text-2xl font-bold mb-8 flex items-center gap-3">
-            <i data-lucide="bot" class="text-sky-600"></i>
-            Инструкция по настройке Telegram Бота
-        </h2>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div class="space-y-6">
-                <div class="p-6 bg-zinc-50 rounded-2xl">
-                    <h3 class="font-bold mb-4">1. Создание бота</h3>
-                    <ul class="text-sm text-zinc-600 space-y-3 list-disc list-inside">
-                        <li>Найдите в Telegram <a href="https://t.me/BotFather" class="text-sky-600 font-bold">@BotFather</a></li>
-                        <li>Отправьте команду <b>/newbot</b> и следуйте инструкциям</li>
-                        <li>Скопируйте полученный <b>HTTP API Token</b></li>
-                    </ul>
-                </div>
-                <div class="p-6 bg-zinc-50 rounded-2xl">
-                    <h3 class="font-bold mb-4">2. Получение ID администратора</h3>
-                    <ul class="text-sm text-zinc-600 space-y-3 list-disc list-inside">
-                        <li>Напишите боту <a href="https://t.me/userinfobot" class="text-zinc-900 font-bold">@userinfobot</a></li>
-                        <li>Скопируйте ваш <b>ID</b></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="space-y-6">
-                <div class="p-6 bg-zinc-50 rounded-2xl">
-                    <h3 class="font-bold mb-4">3. Установка переменных окружения</h3>
-                    <p class="text-xs text-zinc-500 mb-4">Для работы уведомлений необходимо добавить следующие переменные в настройки приложения (Settings):</p>
-                    <div class="space-y-2 font-mono text-[10px]">
-                        <div class="p-2 bg-white border border-zinc-100 rounded flex justify-between">
-                            <span class="text-zinc-400">TELEGRAM_BOT_TOKEN</span>
-                            <span class="text-zinc-800 font-black">ваш_токен_из_BotFather</span>
-                        </div>
-                        <div class="p-2 bg-white border border-zinc-100 rounded flex justify-between">
-                            <span class="text-zinc-400">TELEGRAM_ADMIN_CHAT_ID</span>
-                            <span class="text-zinc-800 font-black">ваш_ID_из_userinfobot</span>
-                        </div>
-                    </div>
-                    <div class="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-700">
-                        <b>Важно:</b> После добавления переменных в Settings, приложение автоматически перезапустится и уведомления начнут приходить админу и пользователям.
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Services Management -->
     <div id="services-mgt" class="glass p-10 rounded-3xl shadow-2xl border border-zinc-100 mb-12 bg-white">
         <div class="flex justify-between items-center mb-8">
@@ -736,7 +693,7 @@
                 </div>
                 <div>
                     <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Фото (URL)</label>
-                    <input type="url" id="edit-image-url" name="image_url" class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 ring-emerald-500 outline-none">
+                    <input type="text" id="edit-image-url" name="image_url" placeholder="https://..." class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 ring-emerald-500 outline-none">
                 </div>
                 <div>
                     <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Вместимость</label>
