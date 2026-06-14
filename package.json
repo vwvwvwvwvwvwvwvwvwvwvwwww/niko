@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && npm run build:server",
-    "build:server": "esbuild server.ts --platform=node --target=node20 --format=esm --outfile=dist/server.mjs --packages=external",
+    "build:server": "esbuild server.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/server.mjs --packages=external",
     "start": "node dist/server.mjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",
