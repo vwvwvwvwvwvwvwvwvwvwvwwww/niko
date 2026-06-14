@@ -49,6 +49,7 @@ async function startServer() {
   // Global helpers for EJS
   app.locals.optImg = (url: string, w = 800) => {
     if (!url) return '';
+    if (url.startsWith('/images/')) return url;
     if (url.includes('wsrv.nl') || url.includes('weserv.nl')) return url;
     // Proxied images for bypass blocks and optimization
     const isOptimizable = url.includes('unsplash.com') || url.includes('mixkit.co') || url.includes('soundhelix.com') || url.includes('pixabay.com');
@@ -1477,6 +1478,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
+    app.use(express.static(path.join(ROOT_DIR, 'public')));
     app.use(express.static(path.join(ROOT_DIR, 'dist')));
   }
 

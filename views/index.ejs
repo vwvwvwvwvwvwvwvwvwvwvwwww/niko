@@ -78,28 +78,32 @@
                 </div>
             </div>
             <div class="relative glass p-2 rounded-2xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden aspect-[4/3] sm:aspect-[16/9] lg:aspect-[21/9] group">
-                <div id="panorama" class="w-full h-full rounded-[2rem] overflow-hidden"></div>
+                <div id="home-panorama" class="w-full h-full rounded-[2rem] overflow-hidden bg-cover bg-center cursor-move" style="background-image: url('<%= optImg(images.panorama360, 1600) %>'); background-size: 200% auto; background-position: 50% center;"></div>
                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity">
                     <div class="bg-white/90 backdrop-blur-md px-6 py-3 rounded-full font-bold text-sm shadow-xl flex items-center gap-3">
-                        <i data-lucide="move-3d"></i> Вращайте для обзора 360°
+                        <i data-lucide="move"></i> Проведите мышью для осмотра
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
-    <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
     <script>
-        window.addEventListener('load', () => {
-            pannellum.viewer('panorama', {
-                "type": "equirectangular",
-                "panorama": "<%= images.panorama360 %>",
-                "autoLoad": true,
-                "title": "База отдыха НИКО",
-                "author": "Команда НИКО",
-                "yaw": 180
+        (function () {
+            const viewer = document.getElementById('home-panorama');
+            if (!viewer) return;
+            let dragging = false;
+            let startX = 0;
+            let pos = 50;
+            viewer.addEventListener('mousedown', (e) => { dragging = true; startX = e.pageX; });
+            window.addEventListener('mouseup', () => { dragging = false; });
+            window.addEventListener('mousemove', (e) => {
+                if (!dragging) return;
+                pos += (e.pageX - startX) * 0.08;
+                pos = Math.max(0, Math.min(100, pos));
+                viewer.style.backgroundPositionX = pos + '%';
+                startX = e.pageX;
             });
-        });
+        })();
     </script>
 </section>
 
