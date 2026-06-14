@@ -6,25 +6,14 @@
         <p class="text-zinc-500">Посмотрите, как отдыхают наши гости в Нико</p>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
-        <% const images = [
-            'https://images.unsplash.com/photo-1533587851505-d119e13fa0d7', // Camping
-            'https://images.unsplash.com/photo-1501785888041-af3ef285b470', // Lake/Nature
-            'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b', // Mountains
-            'https://images.unsplash.com/photo-1531956461690-939999056637', // Quad
-            'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a', // Horse
-            'https://images.unsplash.com/photo-1530866495547-15bcdc58440a', // Rafting
-            'https://images.unsplash.com/photo-1595246140625-573b715d11dc', // Paintball
-            'https://images.unsplash.com/photo-1519681393784-d120267933ba', // Cabin/Snow
-            'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4', // Tent
-            'https://images.unsplash.com/photo-1470770841072-f978cf4d019e', // Landscape
-            'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7', // Forest
-            'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05'  // Nature
-        ] %>
+    <% const galleryImages = (photos && photos.length)
+        ? photos.map(p => p.image_url)
+        : images.gallery; %>
 
-        <% images.forEach((img, index) => { %>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
+        <% galleryImages.forEach((img) => { %>
             <div onclick="openLightbox('<%= optImg(img, 1200) %>')" class="group relative aspect-square overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-700 cursor-pointer">
-                <img src="<%= optImg(img, 400) %>" alt="Gallery Image" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                <img src="<%= optImg(img, 400) %>" alt="База отдыха Нико" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <i data-lucide="maximize" class="text-white w-8 h-8"></i>
                 </div>
@@ -40,8 +29,7 @@
         </div>
 
         <div class="relative group rounded-[4rem] overflow-hidden border border-zinc-100 shadow-2xl aspect-[21/9]">
-            <!-- Simulated 360 Viewer -->
-            <div id="panorama-viewer" class="w-full h-full bg-cover bg-center cursor-move" style="background-image: url('<%= optImg('https://images.unsplash.com/photo-1542718610-a1d656d1884c', 1200) %>'); background-size: 200% auto; transition: background-position 0.1s linear;">
+            <div id="panorama-viewer" class="w-full h-full bg-cover bg-center cursor-move" style="background-image: url('<%= optImg(images.panoramaDeck, 1200) %>'); background-size: 200% auto; transition: background-position 0.1s linear;">
                 <div class="absolute inset-0 bg-black/20 flex items-center justify-center">
                     <div class="text-center text-white p-8 bg-black/40 backdrop-blur-md rounded-3xl group-hover:opacity-0 transition-opacity">
                         <i data-lucide="move" class="w-12 h-12 mx-auto mb-4"></i>

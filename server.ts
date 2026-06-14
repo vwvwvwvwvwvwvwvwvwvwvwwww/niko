@@ -6,6 +6,7 @@ import fs from 'fs';
 import cookieSession from 'cookie-session';
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
+import { SITE_IMAGES, syncSiteImages } from './images.js';
 const isProduction = process.env.NODE_ENV === 'production';
 
 const ROOT_DIR = process.cwd();
@@ -316,11 +317,11 @@ async function startServer() {
   const serviceCount = db.prepare('SELECT COUNT(*) as count FROM services').get() as { count: number };
   if (serviceCount.count === 0) {
     const services = [
-      { name: 'Квадроциклы', description: 'Захватывающие поездки по пересеченной местности.', price: 2500, weekend_price: 3000, image_url: 'https://images.unsplash.com/photo-1531956461690-939999056637', category: 'active' },
-      { name: 'Конные прогулки', description: 'Спокойные прогулки на лошадях по лесным тропам.', price: 1500, weekend_price: 1800, image_url: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a', category: 'relax' },
-      { name: 'Сплав по реке', description: 'Экстремальный рафтинг для любителей адреналина.', price: 3000, weekend_price: 3500, image_url: 'https://images.unsplash.com/photo-1530866495547-15bcdc58440a', category: 'water' },
-      { name: 'Пейнтбол', description: 'Командная тактическая игра на лесной площадке.', price: 1200, weekend_price: 1500, image_url: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc', category: 'team' },
-      { name: 'Баня на дровах', description: 'Традиционная русская баня с купелью.', price: 2000, weekend_price: 2500, image_url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba', category: 'relax' }
+      { name: 'Квадроциклы', description: 'Захватывающие поездки по пересеченной местности.', price: 2500, weekend_price: 3000, image_url: SITE_IMAGES.services['Квадроциклы'], category: 'active' },
+      { name: 'Конные прогулки', description: 'Спокойные прогулки на лошадях по лесным тропам.', price: 1500, weekend_price: 1800, image_url: SITE_IMAGES.services['Конные прогулки'], category: 'relax' },
+      { name: 'Сплав по реке', description: 'Экстремальный рафтинг для любителей адреналина.', price: 3000, weekend_price: 3500, image_url: SITE_IMAGES.services['Сплав по реке'], category: 'water' },
+      { name: 'Пейнтбол', description: 'Командная тактическая игра на лесной площадке.', price: 1200, weekend_price: 1500, image_url: SITE_IMAGES.services['Пейнтбол'], category: 'team' },
+      { name: 'Баня на дровах', description: 'Традиционная русская баня с купелью.', price: 2000, weekend_price: 2500, image_url: SITE_IMAGES.services['Баня на дровах'], category: 'relax' }
     ];
     const stmt = db.prepare('INSERT INTO services (name, description, price, weekend_price, image_url, category) VALUES (?, ?, ?, ?, ?, ?)');
     services.forEach(s => stmt.run(s.name, s.description, s.price, s.weekend_price, s.image_url, s.category));
@@ -330,9 +331,9 @@ async function startServer() {
   const eventCount = db.prepare('SELECT COUNT(*) as count FROM events').get() as { count: number };
   if (eventCount.count === 0) {
     const events = [
-      { title: 'Йога-тур "Гармония"', description: 'Утренние медитации на берегу.', event_date: '2026-06-15T09:00', price: 3000, capacity: 20, image_url: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b' },
-      { title: 'Турнир по пейнтболу', description: 'Большой командный матч.', event_date: '2026-06-20T12:00', price: 1200, capacity: 50, image_url: 'https://images.unsplash.com/photo-1505330622279-bf7d7fc918f4' },
-      { title: 'Концерт у костра', description: 'Живая музыка и песни под гитару.', event_date: '2026-06-25T20:00', price: 500, capacity: 100, image_url: 'https://images.unsplash.com/photo-1496024840928-4c417dad2d1d' }
+      { title: 'Йога-тур "Гармония"', description: 'Утренние медитации на берегу.', event_date: '2026-06-15T09:00', price: 3000, capacity: 20, image_url: SITE_IMAGES.events['Йога-тур "Гармония"'] },
+      { title: 'Турнир по пейнтболу', description: 'Большой командный матч.', event_date: '2026-06-20T12:00', price: 1200, capacity: 50, image_url: SITE_IMAGES.events['Турнир по пейнтболу'] },
+      { title: 'Концерт у костра', description: 'Живая музыка и песни под гитару.', event_date: '2026-06-25T20:00', price: 500, capacity: 100, image_url: SITE_IMAGES.events['Концерт у костра'] }
     ];
     const stmt = db.prepare('INSERT INTO events (title, description, event_date, price, capacity, image_url) VALUES (?, ?, ?, ?, ?, ?)');
     events.forEach(e => stmt.run(e.title, e.description, e.event_date, e.price, e.capacity, e.image_url));
@@ -354,16 +355,14 @@ async function startServer() {
   // Seed gallery if empty
   const photoCount = db.prepare('SELECT COUNT(*) as count FROM gallery_photos').get() as { count: number };
   if (photoCount.count === 0) {
-    const photos = [
-      'https://images.unsplash.com/photo-1533587851505-d119e13fa0d7',
-      'https://images.unsplash.com/photo-1501785888041-af3ef285b470',
-      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b',
-      'https://images.unsplash.com/photo-1531956461690-939999056637',
-      'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a',
-      'https://images.unsplash.com/photo-1530866495547-15bcdc58440a'
-    ];
     const stmt = db.prepare('INSERT INTO gallery_photos (image_url) VALUES (?)');
-    photos.forEach(p => stmt.run(p));
+    SITE_IMAGES.gallery.forEach(p => stmt.run(p));
+  }
+
+  try {
+    syncSiteImages(db);
+  } catch (e) {
+    console.error('Ошибка синхронизации изображений:', e);
   }
 
   // Weather helper with persistence
@@ -429,6 +428,7 @@ async function startServer() {
 
   // Protocol and Session Config Middleware
   app.use((req: any, res: any, next: any) => {
+    res.locals.images = SITE_IMAGES;
     const start = Date.now();
     const forwarded = req.headers['forwarded'];
     const host = req.headers.host || '';
@@ -1285,9 +1285,9 @@ async function startServer() {
   app.get('/news', (req, res) => {
     const weather = getWeatherData();
     const news = [
-      { id: 1, title: 'Открытие сезона 2026', date: '2026-03-15', content: 'Мы рады сообщить об открытии нового сезона активного отдыха!', image: 'https://images.unsplash.com/photo-1473448912268-2022ce9509d8' },
-      { id: 2, title: 'Новые маршруты для квадроциклов', date: '2026-03-20', content: 'Мы разработали 3 новых экстремальных маршрута по лесному массиву.', image: 'https://images.unsplash.com/photo-1531956461690-939999056637' },
-      { id: 3, title: 'Скидки на групповые бронирования', date: '2026-03-25', content: 'При бронировании от 5 человек действует скидка 15% на все услуги.', image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18' }
+      { id: 1, title: 'Открытие сезона 2026', date: '2026-03-15', content: 'Мы рады сообщить об открытии нового сезона активного отдыха!', image: SITE_IMAGES.news[0] },
+      { id: 2, title: 'Новые маршруты для квадроциклов', date: '2026-03-20', content: 'Мы разработали 3 новых экстремальных маршрута по лесному массиву.', image: SITE_IMAGES.news[1] },
+      { id: 3, title: 'Скидки на групповые бронирования', date: '2026-03-25', content: 'При бронировании от 5 человек действует скидка 15% на все услуги.', image: SITE_IMAGES.news[2] }
     ];
     res.render('news', { news, weather, title: 'Новости' });
   });
@@ -1400,7 +1400,7 @@ async function startServer() {
       priceNum,
       weekend_price ? Number(weekend_price) : priceNum,
       String(category || 'active'),
-      image_url || 'https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&q=80',
+      image_url || SITE_IMAGES.defaultService,
       capacity ? Number(capacity) : 10
     );
     res.json({ success: true });

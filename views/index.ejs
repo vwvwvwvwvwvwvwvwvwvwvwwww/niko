@@ -2,8 +2,8 @@
 
 <!-- Hero Section with Video Background -->
 <section class="relative h-screen flex items-center justify-center overflow-hidden bg-zinc-900">
-    <video autoplay muted loop playsinline poster="<%= optImg('https://images.unsplash.com/photo-1470770841072-f978cf4d019e', 1200) %>" class="absolute inset-0 w-full h-full object-cover">
-        <source src="https://cdn.coverr.co/videos/mp4/coverr-coniferous-forest-1571060945952.mp4" type="video/mp4">
+    <video autoplay muted loop playsinline poster="<%= optImg(images.hero, 1200) %>" class="absolute inset-0 w-full h-full object-cover">
+        <source src="<%= images.heroVideo %>" type="video/mp4">
     </video>
     <div class="absolute inset-0 bg-black/40"></div>
     <div class="relative z-10 text-center text-white px-4">
@@ -20,7 +20,7 @@
 </section>
 
 <!-- Parallax Section -->
-<section class="parallax py-32 flex items-center justify-center" style="background-image: url('<%= optImg('https://images.unsplash.com/photo-1470770841072-f978cf4d019e', 1200) %>');">
+<section class="parallax py-32 flex items-center justify-center" style="background-image: url('<%= optImg(images.parallax, 1200) %>');">
     <div class="glass p-6 sm:p-12 rounded-3xl max-w-3xl mx-4 sm:mx-auto text-center text-white">
         <h2 class="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6">Почувствуйте свободу</h2>
         <p class="text-sm sm:text-lg opacity-90">Мы создали идеальное место для тех, кто ценит комфорт и приключения. От экстремальных сплавов до уютных вечеров у костра.</p>
@@ -93,7 +93,7 @@
         window.addEventListener('load', () => {
             pannellum.viewer('panorama', {
                 "type": "equirectangular",
-                "panorama": "https://upload.wikimedia.org/wikipedia/commons/8/89/Meadow_Lake%2C_Idaho.jpg",
+                "panorama": "<%= images.panorama360 %>",
                 "autoLoad": true,
                 "title": "База отдыха НИКО",
                 "author": "Команда НИКО",
@@ -254,7 +254,7 @@
                         </div>
                     </div>
                     <div class="rounded-2xl overflow-hidden aspect-square mb-4">
-                        <img src="<%= optImg('https://images.unsplash.com/photo-1542718610-a1d656d1884c', 400) %>" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                        <img src="<%= optImg(images.liveRiver, 400) %>" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
                     </div>
                     <p class="text-xs text-zinc-500">Гости из Отрадного наслаждаются видом на реку.</p>
                 </div>
@@ -295,7 +295,7 @@
                         </div>
                     </div>
                     <div class="rounded-2xl overflow-hidden aspect-video mb-4">
-                        <img src="<%= optImg('https://images.unsplash.com/photo-1531956461690-939999056637', 400) %>" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                        <img src="<%= optImg(images.liveQuad, 400) %>" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
                     </div>
                     <p class="text-xs text-zinc-500">Группа из 6 человек отправилась на экскурсию на квадроциклах.</p>
                 </div>
@@ -402,21 +402,13 @@
     </div>
     <div class="swiper circular-swiper max-w-5xl mx-auto">
         <div class="swiper-wrapper">
+            <% images.slider.forEach((img) => { %>
             <div class="swiper-slide flex justify-center">
                 <div class="w-80 h-80 circular-slider border-4 border-emerald-500/30">
-                    <img src="<%= optImg('https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7', 500) %>" loading="lazy" class="w-full h-full object-cover">
+                    <img src="<%= optImg(img, 500) %>" loading="lazy" class="w-full h-full object-cover">
                 </div>
             </div>
-            <div class="swiper-slide flex justify-center">
-                <div class="w-80 h-80 circular-slider border-4 border-emerald-500/30">
-                    <img src="<%= optImg('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05', 500) %>" loading="lazy" class="w-full h-full object-cover">
-                </div>
-            </div>
-            <div class="swiper-slide flex justify-center">
-                <div class="w-80 h-80 circular-slider border-4 border-emerald-500/30">
-                    <img src="<%= optImg('https://images.unsplash.com/photo-1441974231531-c6227db76b6e', 500) %>" loading="lazy" class="w-full h-full object-cover">
-                </div>
-            </div>
+            <% }) %>
         </div>
         <div class="swiper-pagination mt-12"></div>
     </div>
@@ -429,7 +421,7 @@
             <i data-lucide="x"></i>
         </button>
         <video id="tourVideo" class="w-full h-full object-cover" controls playsinline>
-            <source src="https://cdn.coverr.co/videos/mp4/coverr-river-near-the-mountains-1571060945890.mp4" type="video/mp4">
+            <source src="<%= images.riverVideo %>" type="video/mp4">
         </video>
         <div class="absolute bottom-10 left-10 text-white pointer-events-none">
             <h3 class="text-3xl font-bold tracking-tighter mb-2">Добро пожаловать в НИКО</h3>
