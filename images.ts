@@ -12,7 +12,7 @@ export const SITE_IMAGES = {
   aboutSecondary: img('campfire.jpg'),
 
   liveRiver: img('lake-dawn.jpg'),
-  liveQuad: img('quad.jpg'),
+  liveQuad: img('atv.jpg'),
 
   slider: [img('campfire.jpg'), img('camping.jpg'), img('lake-dawn.jpg')],
 
@@ -23,7 +23,7 @@ export const SITE_IMAGES = {
     img('lake-dawn.jpg'),
     img('campfire.jpg'),
     img('camping.jpg'),
-    img('quad.jpg'),
+    img('atv.jpg'),
     img('horses.jpg'),
     img('rafting.jpg'),
     img('paintball.jpg'),
@@ -34,7 +34,7 @@ export const SITE_IMAGES = {
   ],
 
   services: {
-    'Квадроциклы': img('quad.jpg'),
+    'Квадроциклы': img('atv.jpg'),
     'Конные прогулки': img('horses.jpg'),
     'Сплав по реке': img('rafting.jpg'),
     'Пейнтбол': img('paintball.jpg'),
@@ -47,7 +47,7 @@ export const SITE_IMAGES = {
     'Концерт у костра': img('campfire.jpg'),
   },
 
-  news: [img('season.jpg'), img('quad.jpg'), img('friends.jpg')],
+  news: [img('season.jpg'), img('atv.jpg'), img('friends.jpg')],
 
   defaultService: img('cabin.jpg'),
 } as const;
