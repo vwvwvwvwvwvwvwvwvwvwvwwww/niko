@@ -7,6 +7,7 @@ import cookieSession from 'cookie-session';
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
 import { SITE_IMAGES, syncSiteImages } from './images.js';
+import { createEmailNotifier, emailLayout, formatDateRu, isEmailConfigured } from './email.js';
 const isProduction = process.env.NODE_ENV === 'production';
 
 const ROOT_DIR = process.cwd();
@@ -386,6 +387,13 @@ async function startServer() {
     console.error('Ошибка синхронизации изображений:', e);
   }
 
+  const mail = createEmailNotifier(db);
+  if (isEmailConfigured()) {
+    console.log('[startup] Email-уведомления включены (SMTP)');
+  } else {
+    console.log('[startup] Email не настроен — задайте SMTP_HOST, SMTP_USER, SMTP_PASS в Variables');
+  }
+
   // Weather helper with persistence
   let cachedWeather: any = null;
   let lastWeatherFetch = 0;
@@ -605,6 +613,12 @@ async function startServer() {
   app.post('/api/admin/chat/send', requireAuth, requireAdmin, (req: any, res) => {
     const { user_id, content } = req.body;
     db.prepare('INSERT INTO messages (user_id, sender_role, content) VALUES (?, ?, ?)').run(user_id, 'admin', content);
+    mail.notifyUser(
+      Number(user_id),
+      'Ответ от поддержки',
+      `Новое сообщение от поддержки NIKO:\n\n${content}\n\nОтветить: ${mail.appUrl}/profile`,
+      emailLayout('Сообщение от поддержки', `<p>${content}</p><p><a href="${mail.appUrl}/profile">Открыть чат в личном кабинете</a></p>`)
+    );
     res.json({ success: true });
   });
 
@@ -703,6 +717,34 @@ async function startServer() {
 
     logActivity(req.session.userId, 'Бронирование создано', `Услуга: ${service.name}, Дата: ${date}, Сумма: ${finalPrice} ₽`);
 
+    const bookingId = Number(result.lastInsertRowid);
+    const userProfile = db.prepare('SELECT name, email FROM users WHERE id = ?').get(req.session.userId) as { name: string; email: string };
+    const dateRu = formatDateRu(date);
+    mail.notifyUser(
+      req.session.userId,
+      `Заявка #${bookingId} принята`,
+      `Здравствуйте, ${userProfile.name}!\n\nВаша заявка на «${service.name}» принята.\nДата: ${dateRu}\nГостей: ${guests}\nСумма: ${finalPrice} ₽\n\nОплатите бронь в личном кабинете:\n${mail.appUrl}/payment/${bookingId}`,
+      emailLayout('Заявка принята', `
+        <p>Здравствуйте, <b>${userProfile.name}</b>!</p>
+        <p>Ваша заявка на <b>${service.name}</b> принята.</p>
+        <ul style="padding-left:20px">
+          <li>Дата: <b>${dateRu}</b></li>
+          <li>Гостей: <b>${guests}</b></li>
+          <li>Сумма: <b>${finalPrice} ₽</b></li>
+        </ul>
+        <p><a href="${mail.appUrl}/payment/${bookingId}" style="display:inline-block;background:#059669;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:700">Перейти к оплате</a></p>
+      `)
+    );
+    mail.notifyAdmins(
+      `Новое бронирование #${bookingId}`,
+      `Клиент: ${userProfile.name} (${userProfile.email})\nУслуга: ${service.name}\nДата: ${dateRu}\nГостей: ${guests}\nСумма: ${finalPrice} ₽`,
+      emailLayout('Новое бронирование', `
+        <p><b>${userProfile.name}</b> (${userProfile.email})</p>
+        <p>Услуга: <b>${service.name}</b><br>Дата: <b>${dateRu}</b><br>Гостей: <b>${guests}</b><br>Сумма: <b>${finalPrice} ₽</b></p>
+        <p><a href="${mail.appUrl}/admin">Открыть админ-панель</a></p>
+      `)
+    );
+
     // Handle Bundle Service (e.g., Banya)
     if (req.body.bundle_service === 'banya') {
       const banya = db.prepare("SELECT * FROM services WHERE name LIKE '%Баня%'").get() as any;
@@ -717,10 +759,10 @@ async function startServer() {
     }
 
     // SMS-уведомление клиенту (если настроен SMS_API_KEY)
-    const userProfile = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId) as any;
-    sendSMSNotification(userProfile.phone, `Ваша бронь на ${service.name} (${date}) принята! Ждем вас.`);
+    const userPhone = db.prepare('SELECT phone FROM users WHERE id = ?').get(req.session.userId) as { phone: string } | undefined;
+    if (userPhone?.phone) sendSMSNotification(userPhone.phone, `Ваша бронь на ${service.name} (${dateRu}) принята! Ждем вас.`);
     
-    res.redirect(`/profile?success=booked&booking_id=${result.lastInsertRowid}`);
+    res.redirect(`/profile?success=booked&booking_id=${bookingId}`);
   });
 
   app.get('/payment/:booking_id', requireAuth, (req: any, res) => {
@@ -799,8 +841,20 @@ async function startServer() {
 
     db.prepare("UPDATE bookings SET is_paid = 1, status = 'confirmed', total_price = ? WHERE id = ?").run(currentPrice, booking_id);
     
-    const serviceName = db.prepare('SELECT s.name FROM services s JOIN bookings b ON b.service_id = s.id WHERE b.id = ?').get(booking_id) as any;
+    const serviceName = db.prepare('SELECT s.name FROM services s JOIN bookings b ON b.service_id = s.id WHERE b.id = ?').get(booking_id) as { name: string } | undefined;
     logActivity(req.session.userId, 'Оплата произведена', `Бронирование #${booking_id} (${serviceName?.name || 'услуга'}), Сумма: ${currentPrice} ₽`);
+
+    mail.notifyUser(
+      req.session.userId,
+      `Оплата бронирования #${booking_id}`,
+      `Ваше бронирование #${booking_id} (${serviceName?.name || 'услуга'}) оплачено.\nСумма: ${currentPrice} ₽\nЖдём вас в NIKO!`,
+      emailLayout('Оплата подтверждена', `
+        <p>Бронирование <b>#${booking_id}</b> (${serviceName?.name || 'услуга'}) успешно оплачено.</p>
+        <p>Сумма: <b>${currentPrice} ₽</b></p>
+        <p>Ждём вас на базе отдыха!</p>
+        <p><a href="${mail.appUrl}/profile">Личный кабинет</a></p>
+      `)
+    );
     
     res.redirect('/profile?success=paid');
   });
@@ -812,6 +866,12 @@ async function startServer() {
     if (booking && booking.status === 'pending') {
       db.prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?").run(booking_id);
       logActivity(req.session.userId, 'Бронирование отменено', `ID: ${booking_id}`);
+      mail.notifyUser(
+        req.session.userId,
+        `Бронирование #${booking_id} отменено`,
+        `Ваше бронирование #${booking_id} отменено.\nЕсли это ошибка — свяжитесь с нами.`,
+        emailLayout('Бронирование отменено', `<p>Бронирование <b>#${booking_id}</b> отменено.</p>`)
+      );
       res.redirect('/profile?success=cancelled');
     } else {
       res.redirect('/profile?error=cannot_cancel');
@@ -1124,7 +1184,16 @@ async function startServer() {
   });
 
   app.post('/contact', (req, res) => {
-    // In a real app, we would send an email here
+    const { name, email, subject, message } = req.body;
+    mail.notifyAdmins(
+      `Сообщение с сайта: ${subject}`,
+      `От: ${name} <${email}>\n\n${message}`,
+      emailLayout('Новое сообщение с сайта', `
+        <p><b>От:</b> ${name} &lt;${email}&gt;</p>
+        <p><b>Тема:</b> ${subject}</p>
+        <p style="white-space:pre-wrap;background:#f4f4f5;padding:16px;border-radius:12px">${message}</p>
+      `)
+    );
     res.redirect('/contact?success=sent');
   });
 
@@ -1187,6 +1256,17 @@ async function startServer() {
       console.log(`[DEBUG] Registration successful, new user ID: ${newUserId}`);
       
       req.session.userId = newUserId;
+      logActivity(newUserId, 'Регистрация', 'Новый пользователь');
+      mail.notifyAddress(
+        email,
+        'Добро пожаловать',
+        `Здравствуйте, ${name}!\n\nВы зарегистрировались на базе отдыха NIKO.\nБронируйте услуги: ${mail.appUrl}/booking`,
+        emailLayout('Добро пожаловать!', `
+          <p>Здравствуйте, <b>${name}</b>!</p>
+          <p>Рады видеть вас на базе отдыха NIKO.</p>
+          <p><a href="${mail.appUrl}/booking" style="display:inline-block;background:#059669;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:700">Забронировать отдых</a></p>
+        `)
+      );
       console.log('[DEBUG] Session set, redirecting to /profile');
       res.redirect('/profile');
     } catch (e: any) {
@@ -1222,6 +1302,20 @@ async function startServer() {
       req.session.userId, code, amount, recipient_email || null, sender_name, message
     );
     logActivity(req.session.userId, 'Сертификат куплен', `Номинал: ${amount} ₽, Получатель: ${recipient_email || 'не указан'}`);
+    if (recipient_email) {
+      mail.notifyAddress(
+        recipient_email,
+        'Вам подарили сертификат',
+        `Вам подарили сертификат на базу отдыха NIKO!\nОт: ${sender_name}\nСумма: ${amount} ₽\nКод: ${code}\n\n${message || ''}\n\nАктивируйте в личном кабинете: ${mail.appUrl}/profile`,
+        emailLayout('Подарочный сертификат', `
+          <p>Вам подарили сертификат на <b>${amount} ₽</b>!</p>
+          <p>От: <b>${sender_name}</b></p>
+          ${message ? `<p style="font-style:italic">«${message}»</p>` : ''}
+          <p>Код сертификата: <b style="font-size:18px;letter-spacing:2px">${code}</b></p>
+          <p><a href="${mail.appUrl}/profile">Открыть личный кабинет</a></p>
+        `)
+      );
+    }
     res.redirect('/profile?success=cert_purchased');
   });
 
@@ -1443,9 +1537,27 @@ async function startServer() {
 
   app.post('/admin/question/answer', requireAuth, requireAdmin, (req: any, res: any) => {
     const { question_id, answer, is_public } = req.body;
+    const question = db.prepare(`
+      SELECT q.*, u.name as user_name FROM questions q
+      JOIN users u ON q.user_id = u.id WHERE q.id = ?
+    `).get(question_id) as { user_id: number; question: string; user_name: string } | undefined;
+
     db.prepare('UPDATE questions SET answer = ?, is_public = ? WHERE id = ?').run(
       answer, is_public === 'on' ? 1 : 0, question_id
     );
+
+    if (question) {
+      mail.notifyUser(
+        question.user_id,
+        'Ответ на ваш вопрос',
+        `Здравствуйте, ${question.user_name}!\n\nВаш вопрос: «${question.question}»\n\nОтвет: ${answer}`,
+        emailLayout('Ответ на ваш вопрос', `
+          <p>Здравствуйте, <b>${question.user_name}</b>!</p>
+          <p><b>Ваш вопрос:</b> «${question.question}»</p>
+          <p style="background:#ecfdf5;padding:16px;border-radius:12px"><b>Ответ:</b><br>${answer}</p>
+        `)
+      );
+    }
     res.redirect('/admin#questions');
   });
 
@@ -1464,7 +1576,39 @@ async function startServer() {
 
   app.post('/admin/booking/status', requireAuth, requireAdmin, (req: any, res: any) => {
     const { booking_id, status } = req.body;
+    const booking = db.prepare(`
+      SELECT b.*, u.name as user_name, s.name as service_name
+      FROM bookings b
+      JOIN users u ON b.user_id = u.id
+      JOIN services s ON b.service_id = s.id
+      WHERE b.id = ?
+    `).get(booking_id) as { user_id: number; user_name: string; service_name: string; booking_date: string } | undefined;
+
     db.prepare('UPDATE bookings SET status = ? WHERE id = ?').run(status, booking_id);
+
+    if (booking && status === 'confirmed') {
+      mail.notifyUser(
+        booking.user_id,
+        `Бронирование #${booking_id} подтверждено`,
+        `Здравствуйте, ${booking.user_name}!\n\nВаше бронирование на «${booking.service_name}» подтверждено.\nДата: ${formatDateRu(booking.booking_date)}`,
+        emailLayout('Бронирование подтверждено', `
+          <p>Здравствуйте, <b>${booking.user_name}</b>!</p>
+          <p>Бронирование на <b>${booking.service_name}</b> подтверждено.</p>
+          <p>Дата: <b>${formatDateRu(booking.booking_date)}</b></p>
+        `)
+      );
+    }
+    if (booking && status === 'cancelled') {
+      mail.notifyUser(
+        booking.user_id,
+        `Бронирование #${booking_id} отменено администратором`,
+        `Здравствуйте, ${booking.user_name}!\n\nВаше бронирование на «${booking.service_name}» отменено администратором.`,
+        emailLayout('Бронирование отменено', `
+          <p>Здравствуйте, <b>${booking.user_name}</b>!</p>
+          <p>Бронирование на <b>${booking.service_name}</b> отменено администратором.</p>
+        `)
+      );
+    }
     res.redirect('/admin');
   });
 

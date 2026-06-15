@@ -3,11 +3,10 @@
 <section class="max-w-4xl mx-auto px-4 py-24">
     <div class="text-center mb-16">
         <h1 class="text-5xl font-black text-zinc-900 tracking-tighter mb-4">Настройка <span class="text-emerald-600">уведомлений</span></h1>
-        <p class="text-zinc-500">Пошаговое руководство по настройке Email и SMS для вашего аккаунта.</p>
+        <p class="text-zinc-500">Email-письма о бронированиях, оплате и ответах на вопросы.</p>
     </div>
 
     <div class="space-y-8">
-        <!-- Email -->
         <div class="glass p-12 rounded-[3.5rem] border border-zinc-100 shadow-2xl relative overflow-hidden group">
             <div class="absolute top-0 right-0 p-12 text-emerald-500/10">
                 <i data-lucide="mail" class="w-32 h-32"></i>
@@ -17,39 +16,36 @@
                     <i data-lucide="mail" class="w-8 h-8"></i>
                 </div>
                 <div>
-                    <h3 class="text-2xl font-bold mb-4">Email Рассылки и Чеки</h3>
+                    <h3 class="text-2xl font-bold mb-4">Что приходит на почту</h3>
                     <div class="space-y-4 text-zinc-600 leading-relaxed">
-                        <p>После каждой оплаты система автоматически отправляет подтверждение на вашу почту.</p>
-                        <p><strong>Если письма не приходят:</strong></p>
+                        <p>После настройки SMTP письма уходят автоматически на email из вашего профиля:</p>
                         <ul class="list-disc pl-6 space-y-2">
-                            <li>Проверьте папку "Спам" или "Промоакции"</li>
-                            <li>Добавьте адрес <code class="bg-zinc-100 px-2 py-0.5 rounded text-zinc-900">booking@niko-base.ru</code> в список контактов</li>
-                            <li>В настройках профиля убедитесь, что галочка "Получать чеки по почте" включена</li>
+                            <li>подтверждение бронирования и ссылка на оплату</li>
+                            <li>чек после успешной оплаты</li>
+                            <li>отмена брони (вами или администратором)</li>
+                            <li>ответ на вопрос из раздела FAQ</li>
+                            <li>подарочный сертификат (получателю)</li>
                         </ul>
+                        <p><strong>Если письма не приходят:</strong> проверьте папку «Спам» и что в профиле указан правильный email.</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- SMS -->
-        <div class="glass p-12 rounded-[3.5rem] border border-zinc-100 shadow-2xl relative overflow-hidden group">
-            <div class="absolute top-0 right-0 p-12 text-amber-500/10">
-                <i data-lucide="smartphone" class="w-32 h-32"></i>
-            </div>
-            <div class="relative z-10 flex flex-col md:flex-row gap-12 items-start">
-                <div class="w-16 h-16 bg-amber-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-amber-100">
-                    <i data-lucide="smartphone" class="w-8 h-8"></i>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-bold mb-4">SMS Подтверждение</h3>
-                    <div class="space-y-4 text-zinc-600 leading-relaxed">
-                        <p>Используется для подтверждения входа и экстренных уведомлений об отмене из-за погоды.</p>
-                        <div class="mt-6 p-6 bg-amber-50 rounded-2xl border border-amber-100">
-                            <p class="text-sm font-bold text-amber-900 mb-2">Настройка для Администратора (API):</p>
-                            <p class="text-[10px] text-amber-700">Перейдите в <code>.env</code> файл и укажите <code>SMS_API_KEY</code>. Мы поддерживаем провайдеров SMS.RU и Twilio. Это позволит автоматически оповещать всех гостей смены об изменениях за 2 часа до начала.</p>
-                        </div>
-                    </div>
-                </div>
+        <div class="glass p-12 rounded-[3.5rem] border border-zinc-100 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-4">Настройка для администратора</h3>
+            <p class="text-zinc-600 mb-6">В Railway → <b>Variables</b> или в файле <code>.env</code> укажите SMTP:</p>
+            <pre class="bg-zinc-900 text-emerald-400 p-6 rounded-2xl text-xs overflow-x-auto leading-relaxed">SMTP_HOST=smtp.yandex.ru
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=ваш@yandex.ru
+SMTP_PASS=пароль-приложения
+SMTP_FROM="База отдыха НИКО &lt;ваш@yandex.ru&gt;"
+ADMIN_EMAIL=admin@niko.ru</pre>
+            <div class="mt-6 space-y-3 text-sm text-zinc-600">
+                <p><b>Yandex / Mail.ru:</b> включите «Пароли приложений» в настройках почты и используйте его в <code>SMTP_PASS</code>.</p>
+                <p><b>Gmail:</b> <code>SMTP_HOST=smtp.gmail.com</code>, порт <code>587</code>, пароль приложения Google.</p>
+                <p>Администратор получает письма о новых бронированиях и сообщениях с формы контактов.</p>
             </div>
         </div>
     </div>
