@@ -202,7 +202,7 @@
                                     <% } %>
                                 </div>
                             </div>
-                            <form action="/admin/review/delete" method="POST">
+                            <form action="/admin/review/delete" method="POST" onsubmit="return confirm('Удалить отзыв?')">
                                 <input type="hidden" name="review_id" value="<%= review.id %>">
                                 <button type="submit" class="text-zinc-400 hover:text-red-500 transition-colors">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>

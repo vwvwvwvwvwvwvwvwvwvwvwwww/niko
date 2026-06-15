@@ -314,6 +314,26 @@ async function startServer() {
     return avg?.avg_rating ?? 5.0;
   };
 
+  const deleteUserById = (userId: number) => {
+    const tx = db.transaction((id: number) => {
+      db.prepare('DELETE FROM staff_reviews WHERE user_id = ? OR staff_id = ?').run(id, id);
+      db.prepare(
+        'DELETE FROM assignments WHERE booking_id IN (SELECT id FROM bookings WHERE user_id = ?) OR instructor_id = ?'
+      ).run(id, id);
+      db.prepare('DELETE FROM event_bookings WHERE user_id = ?').run(id);
+      db.prepare('DELETE FROM bookings WHERE user_id = ?').run(id);
+      db.prepare('DELETE FROM reviews WHERE user_id = ?').run(id);
+      db.prepare('DELETE FROM messages WHERE user_id = ?').run(id);
+      db.prepare('DELETE FROM questions WHERE user_id = ?').run(id);
+      db.prepare('DELETE FROM certificates WHERE user_id = ?').run(id);
+      db.prepare('DELETE FROM user_achievements WHERE user_id = ?').run(id);
+      db.prepare('DELETE FROM user_history WHERE user_id = ?').run(id);
+      db.prepare('DELETE FROM staff_notes WHERE author_id = ?').run(id);
+      db.prepare('DELETE FROM users WHERE id = ?').run(id);
+    });
+    tx(userId);
+  };
+
   // Seed services if empty
   const serviceCount = db.prepare('SELECT COUNT(*) as count FROM services').get() as { count: number };
   if (serviceCount.count === 0) {
@@ -1455,16 +1475,50 @@ async function startServer() {
   });
 
   app.post('/admin/user/delete', requireAuth, requireAdmin, (req: any, res: any) => {
-    const { user_id } = req.body;
-    // Don't delete self
-    if (Number(user_id) === Number(req.session.userId)) return res.redirect('/admin?error=self_delete');
-    
-    // Delete related data first
-    db.prepare('DELETE FROM assignments WHERE booking_id IN (SELECT id FROM bookings WHERE user_id = ?)').run(user_id);
-    db.prepare('DELETE FROM bookings WHERE user_id = ?').run(user_id);
-    db.prepare('DELETE FROM reviews WHERE user_id = ?').run(user_id);
-    db.prepare('DELETE FROM users WHERE id = ?').run(user_id);
-    res.redirect('/admin');
+    const userId = Number(req.body.user_id);
+    if (!userId) {
+      return res.redirect('/admin?error=' + encodeURIComponent('Не указан пользователь'));
+    }
+    if (userId === Number(req.session.userId)) {
+      return res.redirect('/admin?error=' + encodeURIComponent('Нельзя удалить свой аккаунт'));
+    }
+
+    const target = db.prepare('SELECT id, role FROM users WHERE id = ?').get(userId) as { id: number; role: string } | undefined;
+    if (!target) {
+      return res.redirect('/admin?error=' + encodeURIComponent('Пользователь не найден'));
+    }
+
+    if (target.role === 'admin') {
+      const adminCount = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'admin'").get() as { c: number };
+      if (adminCount.c <= 1) {
+        return res.redirect('/admin?error=' + encodeURIComponent('Нельзя удалить последнего администратора'));
+      }
+    }
+
+    try {
+      deleteUserById(userId);
+      res.redirect('/admin');
+    } catch (err) {
+      console.error('Delete user error:', err);
+      res.redirect('/admin?error=' + encodeURIComponent('Не удалось удалить пользователя'));
+    }
+  });
+
+  app.post('/admin/review/delete', requireAuth, requireAdmin, (req: any, res: any) => {
+    const reviewId = Number(req.body.review_id);
+    if (!reviewId) {
+      return res.redirect('/admin?error=' + encodeURIComponent('Не указан отзыв'));
+    }
+    try {
+      const result = db.prepare('DELETE FROM reviews WHERE id = ?').run(reviewId);
+      if (result.changes === 0) {
+        return res.redirect('/admin?error=' + encodeURIComponent('Отзыв не найден'));
+      }
+      res.redirect('/admin');
+    } catch (err) {
+      console.error('Delete review error:', err);
+      res.redirect('/admin?error=' + encodeURIComponent('Не удалось удалить отзыв'));
+    }
   });
 
   // End of Routes
