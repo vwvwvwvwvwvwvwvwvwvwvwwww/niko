@@ -136,9 +136,10 @@ docker run -d \
 | `SESSION_SECRET` | **Обязательно** в production |
 | `DATABASE_PATH` | Путь к SQLite (опционально) |
 | `GEMINI_API_KEY` | AI-функции (опционально) |
-| `SMTP_HOST` | SMTP-сервер для email-уведомлений |
+| `SMTP_HOST` | SMTP-сервер (опционально, подбирается по домену) |
 | `SMTP_USER` / `SMTP_PASS` | Логин и пароль SMTP |
-| `ADMIN_EMAIL` | Почта администратора для уведомлений |
+| `SMTP_PROVIDER` | `gmail`, `yandex`, `mailru`, `outlook` и др. |
+| `ADMIN_EMAIL` | Почта админа (можно несколько через запятую) |
 
 Полный список: [`.env.example`](.env.example)
 

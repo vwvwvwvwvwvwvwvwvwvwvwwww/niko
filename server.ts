@@ -7,7 +7,7 @@ import cookieSession from 'cookie-session';
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
 import { SITE_IMAGES, syncSiteImages } from './images.js';
-import { createEmailNotifier, emailLayout, formatDateRu, isEmailConfigured } from './email.js';
+import { createEmailNotifier, emailLayout, formatDateRu, getSmtpProviderInfo, isEmailConfigured } from './email.js';
 const isProduction = process.env.NODE_ENV === 'production';
 
 const ROOT_DIR = process.cwd();
@@ -389,7 +389,7 @@ async function startServer() {
 
   const mail = createEmailNotifier(db);
   if (isEmailConfigured()) {
-    console.log('[startup] Email-уведомления включены (SMTP)');
+    console.log(`[startup] Email-уведомления: ${getSmtpProviderInfo()}`);
   } else {
     console.log('[startup] Email не настроен — задайте SMTP_HOST, SMTP_USER, SMTP_PASS в Variables');
   }
@@ -646,6 +646,18 @@ async function startServer() {
     db.prepare('INSERT INTO reviews (user_id, content, rating, image_url, service_id) VALUES (?, ?, ?, ?, ?)').run(
       req.session.userId, content, parseInt(rating), image_url || null, service_id || null
     );
+    const user = db.prepare('SELECT name, email FROM users WHERE id = ?').get(req.session.userId) as { name: string; email: string };
+    mail.notifyUser(
+      req.session.userId,
+      'Отзыв опубликован',
+      `Спасибо за отзыв, ${user.name}! Ваш отзыв принят и появится на сайте.`,
+      emailLayout('Спасибо за отзыв', `<p>Спасибо, <b>${user.name}</b>! Ваш отзыв принят.</p>`)
+    );
+    mail.notifyAdmins(
+      `Новый отзыв от ${user.name}`,
+      `Пользователь: ${user.name} (${user.email})\nОценка: ${rating}\nТекст: ${content}`,
+      emailLayout('Новый отзыв', `<p><b>${user.name}</b> (${user.email})</p><p>Оценка: ${rating}★</p><p>«${content}»</p>`)
+    );
     res.redirect('/profile?success=review_added');
   });
 
@@ -855,6 +867,16 @@ async function startServer() {
         <p><a href="${mail.appUrl}/profile">Личный кабинет</a></p>
       `)
     );
+    const payer = db.prepare('SELECT name, email FROM users WHERE id = ?').get(req.session.userId) as { name: string; email: string };
+    mail.notifyAdmins(
+      `Оплата бронирования #${booking_id}`,
+      `Клиент ${payer.name} (${payer.email}) оплатил бронь #${booking_id}.\nУслуга: ${serviceName?.name || 'услуга'}\nСумма: ${currentPrice} ₽`,
+      emailLayout('Оплата получена', `
+        <p><b>${payer.name}</b> (${payer.email})</p>
+        <p>Бронирование <b>#${booking_id}</b> — ${serviceName?.name || 'услуга'}</p>
+        <p>Сумма: <b>${currentPrice} ₽</b></p>
+      `)
+    );
     
     res.redirect('/profile?success=paid');
   });
@@ -904,6 +926,18 @@ async function startServer() {
   app.post('/faq/ask', requireAuth, (req: any, res) => {
     const { question } = req.body;
     db.prepare('INSERT INTO questions (user_id, question) VALUES (?, ?)').run(req.session.userId, question);
+    const user = db.prepare('SELECT name, email FROM users WHERE id = ?').get(req.session.userId) as { name: string; email: string };
+    mail.notifyUser(
+      req.session.userId,
+      'Вопрос принят',
+      `Здравствуйте, ${user.name}!\n\nМы получили ваш вопрос и скоро ответим.\n\n«${question}»`,
+      emailLayout('Вопрос принят', `<p>Здравствуйте, <b>${user.name}</b>!</p><p>Мы получили ваш вопрос и скоро ответим.</p><p>«${question}»</p>`)
+    );
+    mail.notifyAdmins(
+      `Новый вопрос от ${user.name}`,
+      `От: ${user.name} <${user.email}>\n\n${question}`,
+      emailLayout('Новый вопрос', `<p><b>${user.name}</b> &lt;${user.email}&gt;</p><p>«${question}»</p><p><a href="${mail.appUrl}/admin#questions">Ответить в админке</a></p>`)
+    );
     res.redirect('/faq?success=question_sent');
   });
 
@@ -935,8 +969,27 @@ async function startServer() {
     db.prepare('UPDATE events SET tickets_sold = tickets_sold + ? WHERE id = ?').run(tickets, event_id);
     
     logActivity(req.session.userId, 'Билеты куплены', `Мероприятие: ${event.title}, Билетов: ${tickets}, Сумма: ${totalPrice} ₽`);
+
+    const eventBookingId = Number(result.lastInsertRowid);
+    const user = db.prepare('SELECT name, email FROM users WHERE id = ?').get(req.session.userId) as { name: string; email: string };
+    const eventDate = formatDateRu(event.event_date);
+    mail.notifyUser(
+      req.session.userId,
+      `Билеты на «${event.title}»`,
+      `Здравствуйте, ${user.name}!\n\nВы забронировали ${tickets} билет(ов) на «${event.title}».\nДата: ${eventDate}\nСумма: ${totalPrice} ₽\n\nОплата: ${mail.appUrl}/payment/event/${eventBookingId}`,
+      emailLayout('Билеты на мероприятие', `
+        <p>Мероприятие: <b>${event.title}</b></p>
+        <p>Дата: <b>${eventDate}</b>, билетов: <b>${tickets}</b>, сумма: <b>${totalPrice} ₽</b></p>
+        <p><a href="${mail.appUrl}/payment/event/${eventBookingId}">Перейти к оплате</a></p>
+      `)
+    );
+    mail.notifyAdmins(
+      `Бронь билетов: ${event.title}`,
+      `Клиент: ${user.name} (${user.email})\nБилетов: ${tickets}\nСумма: ${totalPrice} ₽`,
+      emailLayout('Бронь билетов', `<p><b>${user.name}</b> — ${tickets} билет(ов) на «${event.title}»</p>`)
+    );
     
-    res.redirect(`/payment/event/${result.lastInsertRowid}`);
+    res.redirect(`/payment/event/${eventBookingId}`);
   });
 
   app.get('/payment/event/:booking_id', requireAuth, (req: any, res) => {
@@ -1019,7 +1072,26 @@ async function startServer() {
 
     db.prepare('UPDATE event_bookings SET is_paid = 1, total_price = ? WHERE id = ?').run(currentPrice, booking_id);
 
-    // Notify Admin
+    const eventInfo = db.prepare(`
+      SELECT eb.*, e.title, e.event_date FROM event_bookings eb
+      JOIN events e ON eb.event_id = e.id WHERE eb.id = ?
+    `).get(booking_id) as { title: string; event_date: string; tickets: number } | undefined;
+
+    mail.notifyUser(
+      req.session.userId,
+      `Оплата билетов #${booking_id}`,
+      `Билеты на «${eventInfo?.title || 'мероприятие'}» оплачены.\nСумма: ${currentPrice} ₽\nЖдём вас!`,
+      emailLayout('Билеты оплачены', `
+        <p>Мероприятие: <b>${eventInfo?.title || 'мероприятие'}</b></p>
+        <p>Билетов: <b>${eventInfo?.tickets || 1}</b>, сумма: <b>${currentPrice} ₽</b></p>
+        <p>Ждём вас на базе!</p>
+      `)
+    );
+    mail.notifyAdmins(
+      `Оплата билетов #${booking_id}`,
+      `Сумма: ${currentPrice} ₽, мероприятие: ${eventInfo?.title || '—'}`,
+      emailLayout('Оплата билетов', `<p>Бронь <b>#${booking_id}</b> оплачена — <b>${currentPrice} ₽</b></p>`)
+    );
 
     res.redirect('/profile?success=event_paid');
   });
@@ -1175,6 +1247,30 @@ async function startServer() {
     db.prepare('INSERT INTO assignments (booking_id, instructor_id, note, confirmation_status) VALUES (?, ?, ?, ?)').run(
       booking_id, instructor_id, note, confirmationStatus
     );
+    const assignment = db.prepare(`
+      SELECT b.booking_date, s.name as service_name, u.name as client_name, i.email as instructor_email, i.name as instructor_name
+      FROM bookings b
+      JOIN services s ON b.service_id = s.id
+      JOIN users u ON b.user_id = u.id
+      JOIN users i ON i.id = ?
+      WHERE b.id = ?
+    `).get(instructor_id, booking_id) as {
+      booking_date: string; service_name: string; client_name: string;
+      instructor_email: string; instructor_name: string;
+    } | undefined;
+
+    if (assignment?.instructor_email) {
+      mail.notifyAddress(
+        assignment.instructor_email,
+        'Новое назначение на смену',
+        `Здравствуйте, ${assignment.instructor_name}!\n\nВам назначено бронирование:\n${assignment.service_name}\nКлиент: ${assignment.client_name}\nДата: ${formatDateRu(assignment.booking_date)}`,
+        emailLayout('Новое назначение', `
+          <p>Услуга: <b>${assignment.service_name}</b></p>
+          <p>Клиент: <b>${assignment.client_name}</b></p>
+          <p>Дата: <b>${formatDateRu(assignment.booking_date)}</b></p>
+        `)
+      );
+    }
     res.redirect('/admin#staff-coordination');
   });
 
@@ -1405,14 +1501,6 @@ async function startServer() {
       { id: 3, title: 'Скидки на групповые бронирования', date: '2026-03-25', content: 'При бронировании от 5 человек действует скидка 15% на все услуги.', image: SITE_IMAGES.news[2] }
     ];
     res.render('news', { news, weather, title: 'Новости' });
-  });
-
-
-
-  app.post('/faq/ask', requireAuth, (req: any, res) => {
-    const { question } = req.body;
-    db.prepare('INSERT INTO questions (user_id, question) VALUES (?, ?)').run(req.session.userId, question);
-    res.redirect('/faq?success=asked');
   });
 
   app.post('/admin/equipment/add', requireAuth, requireAdmin, (req: any, res: any) => {

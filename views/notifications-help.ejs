@@ -3,7 +3,7 @@
 <section class="max-w-4xl mx-auto px-4 py-24">
     <div class="text-center mb-16">
         <h1 class="text-5xl font-black text-zinc-900 tracking-tighter mb-4">Настройка <span class="text-emerald-600">уведомлений</span></h1>
-        <p class="text-zinc-500">Email-письма о бронированиях, оплате и ответах на вопросы.</p>
+        <p class="text-zinc-500">Письма приходят на любую почту: Gmail, Mail.ru, Yandex, Outlook, iCloud и др.</p>
     </div>
 
     <div class="space-y-8">
@@ -16,37 +16,51 @@
                     <i data-lucide="mail" class="w-8 h-8"></i>
                 </div>
                 <div>
-                    <h3 class="text-2xl font-bold mb-4">Что приходит на почту</h3>
+                    <h3 class="text-2xl font-bold mb-4">Когда приходят письма</h3>
                     <div class="space-y-4 text-zinc-600 leading-relaxed">
-                        <p>После настройки SMTP письма уходят автоматически на email из вашего профиля:</p>
-                        <ul class="list-disc pl-6 space-y-2">
-                            <li>подтверждение бронирования и ссылка на оплату</li>
-                            <li>чек после успешной оплаты</li>
-                            <li>отмена брони (вами или администратором)</li>
-                            <li>ответ на вопрос из раздела FAQ</li>
-                            <li>подарочный сертификат (получателю)</li>
+                        <p>На email из вашего профиля (любой домен):</p>
+                        <ul class="list-disc pl-6 space-y-2 text-sm">
+                            <li>бронирование и оплата услуг</li>
+                            <li>билеты на мероприятия</li>
+                            <li>отмена брони</li>
+                            <li>ответ на вопрос и сообщение от поддержки</li>
+                            <li>подарочный сертификат</li>
+                            <li>подтверждение отзыва</li>
                         </ul>
-                        <p><strong>Если письма не приходят:</strong> проверьте папку «Спам» и что в профиле указан правильный email.</p>
+                        <p class="text-sm">Если письма в «Спаме» — добавьте отправителя в контакты.</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="glass p-12 rounded-[3.5rem] border border-zinc-100 shadow-2xl">
-            <h3 class="text-2xl font-bold mb-4">Настройка для администратора</h3>
-            <p class="text-zinc-600 mb-6">В Railway → <b>Variables</b> или в файле <code>.env</code> укажите SMTP:</p>
-            <pre class="bg-zinc-900 text-emerald-400 p-6 rounded-2xl text-xs overflow-x-auto leading-relaxed">SMTP_HOST=smtp.yandex.ru
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=ваш@yandex.ru
+            <h3 class="text-2xl font-bold mb-4">Настройка SMTP (администратор)</h3>
+            <p class="text-zinc-600 mb-6">В Railway → <b>Variables</b> укажите почту, с которой сайт отправляет письма:</p>
+            <pre class="bg-zinc-900 text-emerald-400 p-6 rounded-2xl text-xs overflow-x-auto leading-relaxed mb-6">SMTP_USER=ваш@gmail.com
 SMTP_PASS=пароль-приложения
-SMTP_FROM="База отдыха НИКО &lt;ваш@yandex.ru&gt;"
-ADMIN_EMAIL=admin@niko.ru</pre>
-            <div class="mt-6 space-y-3 text-sm text-zinc-600">
-                <p><b>Yandex / Mail.ru:</b> включите «Пароли приложений» в настройках почты и используйте его в <code>SMTP_PASS</code>.</p>
-                <p><b>Gmail:</b> <code>SMTP_HOST=smtp.gmail.com</code>, порт <code>587</code>, пароль приложения Google.</p>
-                <p>Администратор получает письма о новых бронированиях и сообщениях с формы контактов.</p>
+SMTP_FROM="База отдыха НИКО &lt;ваш@gmail.com&gt;"
+ADMIN_EMAIL=admin@niko.ru,booking@niko-base.ru
+APP_URL=https://ваш-сайт.railway.app</pre>
+
+            <div class="grid md:grid-cols-2 gap-4 text-sm text-zinc-600">
+                <div class="p-4 bg-zinc-50 rounded-2xl">
+                    <p class="font-bold text-zinc-900 mb-2">Gmail / Google</p>
+                    <p>SMTP_PROVIDER=gmail<br>Пароль приложения в аккаунте Google</p>
+                </div>
+                <div class="p-4 bg-zinc-50 rounded-2xl">
+                    <p class="font-bold text-zinc-900 mb-2">Yandex</p>
+                    <p>SMTP_PROVIDER=yandex<br>Пароль приложения в Яндекс ID</p>
+                </div>
+                <div class="p-4 bg-zinc-50 rounded-2xl">
+                    <p class="font-bold text-zinc-900 mb-2">Mail.ru / Inbox / BK</p>
+                    <p>SMTP_PROVIDER=mailru<br>Пароль для внешних приложений</p>
+                </div>
+                <div class="p-4 bg-zinc-50 rounded-2xl">
+                    <p class="font-bold text-zinc-900 mb-2">Outlook / Hotmail</p>
+                    <p>SMTP_PROVIDER=outlook<br>Пароль приложения Microsoft</p>
+                </div>
             </div>
+            <p class="text-xs text-zinc-500 mt-6">Хост и порт подбираются автоматически по домену SMTP_USER. Письма доставляются на любой адрес получателя.</p>
         </div>
     </div>
 
