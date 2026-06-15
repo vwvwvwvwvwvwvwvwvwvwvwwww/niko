@@ -3,7 +3,16 @@ import type SMTPTransport from 'nodemailer/lib/smtp-transport/index.js';
 
 const SITE_NAME = 'База отдыха НИКО';
 
-/** Пресеты SMTP — Gmail, Yandex, Mail.ru, Outlook и др. */
+let lastEmailError: string | null = null;
+
+function readEnv(key: string): string | undefined {
+  const v = process.env[key];
+  if (v == null) return undefined;
+  const trimmed = String(v).trim();
+  return trimmed.length ? trimmed : undefined;
+}
+
+/** Пустые SMTP_PORT / SMTP_SECURE в Railway ломали отправку — читаем только непустые значения */
 const SMTP_PRESETS: Record<string, { host: string; port: number; secure: boolean }> = {
   yandex: { host: 'smtp.yandex.ru', port: 465, secure: true },
   gmail: { host: 'smtp.gmail.com', port: 587, secure: false },
@@ -16,7 +25,6 @@ const SMTP_PRESETS: Record<string, { host: string; port: number; secure: boolean
   rambler: { host: 'smtp.rambler.ru', port: 465, secure: true },
   icloud: { host: 'smtp.mail.me.com', port: 587, secure: false },
   yahoo: { host: 'smtp.mail.yahoo.com', port: 465, secure: true },
-  proton: { host: 'smtp.protonmail.ch', port: 587, secure: false },
 };
 
 const DOMAIN_TO_PROVIDER: Record<string, string> = {
@@ -49,24 +57,25 @@ function detectProviderFromEmail(email: string): string | null {
 }
 
 function resolveSmtpConfig(): SMTPTransport.Options | null {
-  const user = process.env.SMTP_USER?.trim();
-  const pass = process.env.SMTP_PASS;
+  const user = readEnv('SMTP_USER');
+  const pass = readEnv('SMTP_PASS');
   if (!user || !pass) return null;
 
   const providerKey = (
-    process.env.SMTP_PROVIDER?.toLowerCase() ||
+    readEnv('SMTP_PROVIDER')?.toLowerCase() ||
     detectProviderFromEmail(user) ||
     'custom'
   );
 
   const preset = SMTP_PRESETS[providerKey];
-  const host = process.env.SMTP_HOST?.trim() || preset?.host;
+  const host = readEnv('SMTP_HOST') || preset?.host;
   if (!host) return null;
 
-  const port = Number(process.env.SMTP_PORT || preset?.port || 587);
+  const port = Number(readEnv('SMTP_PORT') || preset?.port || 587);
+  const secureEnv = readEnv('SMTP_SECURE');
   const secure =
-    process.env.SMTP_SECURE !== undefined
-      ? process.env.SMTP_SECURE === 'true'
+    secureEnv !== undefined
+      ? secureEnv === 'true'
       : (preset?.secure ?? port === 465);
 
   return {
@@ -76,11 +85,19 @@ function resolveSmtpConfig(): SMTPTransport.Options | null {
     auth: { user, pass },
     requireTLS: !secure && port === 587,
     tls: { minVersion: 'TLSv1.2' },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
+    family: 4,
   };
 }
 
 export function isEmailConfigured(): boolean {
-  return resolveSmtpConfig() !== null;
+  return !!readEnv('RESEND_API_KEY') || resolveSmtpConfig() !== null;
+}
+
+export function getLastEmailError(): string | null {
+  return lastEmailError;
 }
 
 let transporter: nodemailer.Transporter | null = null;
@@ -113,44 +130,134 @@ function wrapHtml(bodyHtml: string): string {
   return `<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"></head><body>${bodyHtml}</body></html>`;
 }
 
-export async function sendEmail(
-  to: string | string[],
+function getFromAddress(): string {
+  return readEnv('EMAIL_FROM') || readEnv('SMTP_FROM') || `"${SITE_NAME}" <${readEnv('SMTP_USER')}>`;
+}
+
+async function sendViaResend(
+  recipients: string[],
   subject: string,
   text: string,
-  html?: string
-): Promise<boolean> {
-  const transport = getTransporter();
-  const recipients = (Array.isArray(to) ? to : [to])
-    .map(normalizeEmail)
-    .filter(isValidEmail);
+  html: string
+): Promise<{ ok: boolean; error?: string }> {
+  const apiKey = readEnv('RESEND_API_KEY');
+  if (!apiKey) return { ok: false, error: 'RESEND_API_KEY не задан' };
 
-  if (!transport || recipients.length === 0) {
-    console.log(`[email] SMTP не настроен или неверный адрес — пропуск: «${subject}»`);
-    return false;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: getFromAddress(),
+        to: recipients,
+        subject: `${SITE_NAME}: ${subject}`,
+        html: wrapHtml(html),
+        text,
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      return { ok: false, error: `Resend ${res.status}: ${body}` };
+    }
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: message };
   }
+}
 
-  const from = process.env.SMTP_FROM?.trim() || `"${SITE_NAME}" <${process.env.SMTP_USER}>`;
-  const replyTo = process.env.SMTP_REPLY_TO?.trim() || process.env.SMTP_USER;
+async function sendViaSmtp(
+  recipients: string[],
+  subject: string,
+  text: string,
+  html: string
+): Promise<{ ok: boolean; error?: string }> {
+  const transport = getTransporter();
+  if (!transport) return { ok: false, error: 'SMTP не настроен (SMTP_USER и SMTP_PASS)' };
+
+  const replyTo = readEnv('SMTP_REPLY_TO') || readEnv('SMTP_USER');
 
   try {
     await transport.sendMail({
-      from,
+      from: getFromAddress(),
       replyTo,
       to: recipients.join(', '),
       subject: `${SITE_NAME}: ${subject}`,
       text,
-      html: wrapHtml(html || text.replace(/\n/g, '<br>')),
+      html: wrapHtml(html),
       encoding: 'utf-8',
       headers: {
         'Content-Language': 'ru',
         'X-Mailer': 'Niko-Base',
       },
     });
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: message };
+  }
+}
+
+export async function sendEmail(
+  to: string | string[],
+  subject: string,
+  text: string,
+  html?: string
+): Promise<boolean> {
+  const recipients = (Array.isArray(to) ? to : [to])
+    .map(normalizeEmail)
+    .filter(isValidEmail);
+
+  if (recipients.length === 0) {
+    lastEmailError = 'Неверный адрес получателя';
+    console.log(`[email] ${lastEmailError}: «${subject}»`);
+    return false;
+  }
+
+  const bodyHtml = html || text.replace(/\n/g, '<br>');
+  let result: { ok: boolean; error?: string };
+
+  if (readEnv('RESEND_API_KEY')) {
+    result = await sendViaResend(recipients, subject, text, bodyHtml);
+    if (!result.ok) {
+      console.warn('[email] Resend не сработал, пробуем SMTP:', result.error);
+      result = await sendViaSmtp(recipients, subject, text, bodyHtml);
+    }
+  } else {
+    result = await sendViaSmtp(recipients, subject, text, bodyHtml);
+  }
+
+  if (result.ok) {
+    lastEmailError = null;
     console.log(`[email] Отправлено: «${subject}» → ${recipients.join(', ')}`);
     return true;
+  }
+
+  lastEmailError = result.error || 'Неизвестная ошибка';
+  console.error(`[email] Ошибка: ${lastEmailError}`);
+  return false;
+}
+
+export async function verifyEmailConnection(): Promise<{ ok: boolean; error?: string; mode: string }> {
+  if (readEnv('RESEND_API_KEY')) {
+    return { ok: true, mode: 'resend (API)' };
+  }
+
+  const transport = getTransporter();
+  if (!transport) {
+    return { ok: false, error: 'Задайте SMTP_USER и SMTP_PASS (или RESEND_API_KEY)', mode: 'none' };
+  }
+
+  try {
+    await transport.verify();
+    return { ok: true, mode: getSmtpProviderInfo() };
   } catch (err) {
-    console.error('[email] Ошибка отправки:', err);
-    return false;
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: message, mode: getSmtpProviderInfo() };
   }
 }
 
@@ -187,7 +294,7 @@ export type EmailNotifier = {
 };
 
 export function createEmailNotifier(db: DbLike): EmailNotifier {
-  const appUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const appUrl = (readEnv('APP_URL') || 'http://localhost:3000').replace(/\/$/, '');
 
   const notifyAddress = (email: string, subject: string, text: string, html?: string) => {
     const normalized = normalizeEmail(email);
@@ -203,7 +310,7 @@ export function createEmailNotifier(db: DbLike): EmailNotifier {
   const notifyAdmins = (subject: string, text: string, html?: string) => {
     const targets = new Set<string>();
 
-    for (const email of parseEmailList(process.env.ADMIN_EMAIL)) {
+    for (const email of parseEmailList(readEnv('ADMIN_EMAIL'))) {
       targets.add(email);
     }
 
@@ -226,9 +333,10 @@ export function createEmailNotifier(db: DbLike): EmailNotifier {
 }
 
 export function getSmtpProviderInfo(): string {
-  const user = process.env.SMTP_USER || '';
-  const provider = process.env.SMTP_PROVIDER || detectProviderFromEmail(user) || 'custom';
+  if (readEnv('RESEND_API_KEY')) return 'resend (API)';
+  const user = readEnv('SMTP_USER') || '';
+  const provider = readEnv('SMTP_PROVIDER') || detectProviderFromEmail(user) || 'custom';
   const config = resolveSmtpConfig();
   if (!config || !('host' in config) || !config.host) return 'не настроен';
-  return `${provider} (${config.host}:${config.port})`;
+  return `${provider} (${config.host}:${config.port}, secure=${config.secure})`;
 }

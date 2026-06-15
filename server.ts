@@ -7,7 +7,7 @@ import cookieSession from 'cookie-session';
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
 import { SITE_IMAGES, syncSiteImages } from './images.js';
-import { createEmailNotifier, emailLayout, formatDateRu, getSmtpProviderInfo, isEmailConfigured } from './email.js';
+import { createEmailNotifier, emailLayout, formatDateRu, getLastEmailError, getSmtpProviderInfo, isEmailConfigured, sendEmail, verifyEmailConnection } from './email.js';
 const isProduction = process.env.NODE_ENV === 'production';
 
 const ROOT_DIR = process.cwd();
@@ -389,9 +389,13 @@ async function startServer() {
 
   const mail = createEmailNotifier(db);
   if (isEmailConfigured()) {
-    console.log(`[startup] Email-уведомления: ${getSmtpProviderInfo()}`);
+    console.log(`[startup] Email: ${getSmtpProviderInfo()}`);
+    verifyEmailConnection().then((r) => {
+      if (r.ok) console.log(`[startup] Email проверка OK (${r.mode})`);
+      else console.error(`[startup] Email проверка ОШИБКА (${r.mode}): ${r.error}`);
+    });
   } else {
-    console.log('[startup] Email не настроен — задайте SMTP_HOST, SMTP_USER, SMTP_PASS в Variables');
+    console.log('[startup] Email не настроен — задайте SMTP_USER + SMTP_PASS или RESEND_API_KEY в Railway Variables');
   }
 
   // Weather helper with persistence
@@ -1561,7 +1565,8 @@ async function startServer() {
     `).all();
 
     const error = req.query.error ? decodeURIComponent(req.query.error as string) : null;
-    res.render('admin', { bookings, users, services, reviews, promoCodes, questions, instructors, unassignedBookings, weather, equipment, title: 'Админ-панель', error });
+    const success = req.query.success === 'email_test' ? 'Тестовое письмо отправлено — проверьте почту (и папку «Спам»)' : null;
+    res.render('admin', { bookings, users, services, reviews, promoCodes, questions, instructors, unassignedBookings, weather, equipment, title: 'Админ-панель', error, success });
   });
 
   app.post('/admin/service/edit', requireAuth, requireAdmin, (req: any, res: any) => {
@@ -1698,6 +1703,25 @@ async function startServer() {
       );
     }
     res.redirect('/admin');
+  });
+
+  app.post('/admin/email/test', requireAuth, requireAdmin, async (req: any, res: any) => {
+    const admin = db.prepare('SELECT email FROM users WHERE id = ?').get(req.session.userId) as { email: string } | undefined;
+    const to = (req.body.email as string)?.trim() || admin?.email;
+    if (!to) {
+      return res.redirect('/admin?error=' + encodeURIComponent('Укажите email для теста'));
+    }
+    const ok = await sendEmail(
+      to,
+      'Тест уведомлений',
+      'Если вы видите это письмо — уведомления на сайте NIKO работают.',
+      emailLayout('Тест почты', '<p>Если вы видите это письмо — <b>уведомления работают</b>.</p>')
+    );
+    if (ok) {
+      return res.redirect('/admin?success=email_test');
+    }
+    const err = getLastEmailError() || 'Не удалось отправить';
+    return res.redirect('/admin?error=' + encodeURIComponent(err));
   });
 
   app.post('/admin/user/role', requireAuth, requireAdmin, (req: any, res: any) => {

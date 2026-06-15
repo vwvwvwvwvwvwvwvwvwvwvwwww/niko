@@ -21,6 +21,25 @@
         </div>
     <% } %>
 
+    <% if (locals.success) { %>
+        <div class="mb-12 p-6 bg-emerald-50 border border-emerald-100 rounded-3xl flex items-center gap-4 text-emerald-700 font-bold shadow-sm">
+            <i data-lucide="check-circle" class="w-6 h-6"></i>
+            <%= locals.success %>
+        </div>
+    <% } %>
+
+    <div class="glass p-6 sm:p-8 rounded-3xl border border-zinc-100 shadow-xl mb-8 sm:mb-12">
+        <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+            <i data-lucide="mail" class="text-emerald-600 w-5 h-5"></i>
+            Проверка email-уведомлений
+        </h2>
+        <p class="text-sm text-zinc-500 mb-4">Отправьте тестовое письмо. Если не приходит — смотрите ошибку выше и Deploy Logs на Railway.</p>
+        <form action="/admin/email/test" method="POST" class="flex flex-col sm:flex-row gap-3">
+            <input type="email" name="email" placeholder="your@email.com" class="flex-1 px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm outline-none focus:ring-2 ring-emerald-500">
+            <button type="submit" class="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 whitespace-nowrap">Отправить тест</button>
+        </form>
+    </div>
+
     <div class="stats-grid grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-8 mb-8 sm:mb-12">
         <div class="glass p-8 rounded-3xl border border-zinc-100 shadow-xl shadow-zinc-100">
             <div class="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2">Всего броней</div>
